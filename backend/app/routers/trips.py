@@ -1,21 +1,19 @@
-"""Trip-planning API endpoints."""
+"""Trip-planning API endpoints router re-export for modular compatibility."""
 
-from fastapi import APIRouter
-from app.models.trip import TripRequest, TripResponse
+from app.routes.trips import (
+    router,
+    plan_trip,
+    create_trip,
+    get_trips,
+    get_trip,
+    delete_trip,
+)
 
-router = APIRouter(prefix="/trips", tags=["trips"])
-
-
-@router.post("/plan", response_model=TripResponse)
-def plan_trip(request: TripRequest) -> TripResponse:
-    """Return a starter itinerary response; replace with generation logic later."""
-    days = max(1, request.days)
-    return TripResponse(
-        destination=request.destination,
-        days=days,
-        interests=request.interests,
-        itinerary=[
-            {"day": day, "title": f"Explore {request.destination}", "activities": ["Add a local attraction", "Try local food"]}
-            for day in range(1, days + 1)
-        ],
-    )
+__all__ = [
+    "router",
+    "plan_trip",
+    "create_trip",
+    "get_trips",
+    "get_trip",
+    "delete_trip",
+]
