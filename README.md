@@ -104,3 +104,9 @@ After Vercel assigns the production domain, set Render's `FRONTEND_URL` to that 
 - Without Supabase credentials, trip storage falls back to process memory for development and is cleared when the backend restarts.
 - Open **My Trips** in the app to view, edit, and delete saved trips. Each saved trip has a detail page with shareable summaries, a copied link, Markdown and JSON downloads, and day regeneration.
 - Authentication uses signed, expiring HS256 tokens. The demo identity is available only in development; production requires registration or sign-in.
+
+## Conclusion
+
+The Personalized Travel Itinerary Planner demonstrates how generative AI can work with a modern full-stack application to create tailored travel experiences. Its React interface gathers trip preferences, while the FastAPI backend uses structured prompts to generate day-by-day itineraries shaped by destination, dates, budget, travel style, and interests.
+
+The application extends beyond itinerary generation with account authentication, trip saving and management, shareable summaries, and export options. Supabase provides persistent storage when configured, and the modular backend, environment-based configuration, automated checks, and Render and Vercel deployment setup prepare the project for cloud hosting and future development. Potential next steps include real-time collaboration, richer recommendations, and additional AI providers.
