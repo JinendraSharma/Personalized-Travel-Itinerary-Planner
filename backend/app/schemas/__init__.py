@@ -16,6 +16,7 @@ from .schemas import (
     TripResponse,
     ItineraryResponse,
     DayItinerary,
+    RegenerateDayRequest,
 )
 
 __all__ = [
@@ -34,4 +35,5 @@ __all__ = [
     "TripResponse",
     "ItineraryResponse",
     "DayItinerary",
+    "RegenerateDayRequest",
 ]

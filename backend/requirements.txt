@@ -4,3 +4,5 @@ python-dotenv
 supabase
 email-validator
 pydantic
+groq
+httpx

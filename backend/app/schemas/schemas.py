@@ -45,6 +45,9 @@ class ItineraryActivitySchema(BaseModel):
     location: Optional[str] = None
     category: Optional[str] = Field(default="Attraction", description="Attraction, Dining, Transit, Leisure")
     estimated_cost: Optional[float] = Field(default=0.0, description="Estimated cost in currency")
+    transit_time: Optional[str] = Field(default=None, description="e.g. 15 mins via Metro")
+    transit_mode: Optional[str] = Field(default=None, description="Walk, Metro, Taxi")
+    neighborhood: Optional[str] = Field(default=None, description="District or cluster area")
 
 
 class ItineraryDaySchema(BaseModel):
@@ -116,3 +119,16 @@ CreateTripRequest = TripPlanRequest
 TripResponse = TripResponseSchema
 ItineraryResponse = TripResponseSchema
 DayItinerary = ItineraryDaySchema
+
+
+class RegenerateDayRequest(BaseModel):
+    """Request schema for refining or regenerating a specific day."""
+    destination: str
+    day_number: int
+    original_title: Optional[str] = "Day Highlights"
+    travel_style: Optional[str] = "cultural"
+    interests: List[str] = Field(default_factory=list)
+    feedback: Optional[str] = Field(default=None, description="e.g. make it more relaxed, more budget-friendly, more outdoor")
+    budget_per_day: Optional[float] = 5000.0
+    currency: Optional[str] = "INR"
+    dietary_needs: Optional[str] = None

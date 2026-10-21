@@ -384,6 +384,252 @@ body {
   background: var(--primary-hover);
 }
 
+.btn-success {
+  background: var(--success) !important;
+}
+
+/* Itinerary Dashboard & Timeline */
+.itinerary-dashboard {
+  max-width: 900px;
+  margin: 2.5rem auto;
+  padding: 0 1.5rem;
+}
+
+.itinerary-header-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.itinerary-title-box h2 {
+  font-size: 1.6rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sparkle-icon {
+  color: #f59e0b;
+}
+
+.itinerary-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+.itinerary-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Day Tabs */
+.days-tab-bar {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.day-tab-btn {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 140px;
+  transition: all 0.2s;
+}
+
+.day-tab-btn:hover {
+  border-color: var(--border-focus);
+}
+
+.day-tab-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgb(79 70 229 / 0.3);
+}
+
+.day-tab-num {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.day-tab-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.day-tab-btn.active .day-tab-sub {
+  color: #e0e7ff;
+}
+
+/* Day Timeline Card */
+.day-timeline-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  box-shadow: var(--shadow);
+}
+
+.day-card-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.day-card-header h3 {
+  font-size: 1.3rem;
+  color: var(--text-main);
+}
+
+.day-summary-text {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  margin-top: 0.35rem;
+}
+
+/* Timeline items */
+.timeline-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-slot {
+  display: flex;
+  position: relative;
+  padding-bottom: 1.75rem;
+}
+
+.timeline-slot:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 1.25rem;
+  width: 24px;
+}
+
+.marker-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 3px solid #e0e7ff;
+  z-index: 2;
+}
+
+.marker-line {
+  flex: 1;
+  width: 2px;
+  background: #e2e8f0;
+  margin-top: 4px;
+}
+
+.timeline-slot:last-child .marker-line {
+  display: none;
+}
+
+.timeline-content-card {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  transition: transform 0.15s;
+}
+
+.timeline-content-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+}
+
+.slot-meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.time-badge {
+  background: #e0e7ff;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.category-badge {
+  background: #f1f5f9;
+  color: var(--text-main);
+  font-size: 0.78rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cost-badge {
+  background: #ecfdf5;
+  color: #065f46;
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+}
+
+.activity-title {
+  font-size: 1.05rem;
+  color: var(--text-main);
+  margin-bottom: 0.35rem;
+}
+
+.activity-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 0.65rem;
+}
+
+.activity-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+@media print {
+  .app-header, .itinerary-actions, .days-tab-bar {
+    display: none !important;
+  }
+}
+
 .btn-secondary {
   background: white;
   border: 1px solid var(--border);

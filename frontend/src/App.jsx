@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Routes, Route, Link, useLocation } from "react-router-dom";
+import { Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
 import { Sparkles, Compass, MapPin } from "lucide-react";
 import Home from "./pages/Home.jsx";
 import CreateTrip from "./pages/CreateTrip.jsx";
+import ItineraryDisplay from "./components/ItineraryDisplay.jsx";
 import { planTrip } from "./services/api.js";
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
 
   async function handlePlanTrip(trip) {
     setLoading(true);
@@ -29,6 +31,7 @@ function App() {
   function handleTripGenerated(tripResult) {
     setCurrentTrip(tripResult);
     setItinerary(tripResult.itinerary ?? []);
+    navigate("/itinerary");
   }
 
   return (
@@ -46,6 +49,11 @@ function App() {
           <Link to="/create" className={location.pathname === "/create" ? "active" : ""}>
             Smart Trip Builder
           </Link>
+          {itinerary.length > 0 && (
+            <Link to="/itinerary" className={location.pathname === "/itinerary" ? "active" : ""}>
+              View Itinerary
+            </Link>
+          )}
         </nav>
       </header>
 
@@ -58,6 +66,7 @@ function App() {
               <Home
                 onPlanTrip={handlePlanTrip}
                 itinerary={itinerary}
+                currentTrip={currentTrip}
                 loading={loading}
                 error={error}
               />
@@ -69,6 +78,14 @@ function App() {
               <CreateTrip
                 onTripGenerated={handleTripGenerated}
               />
+            }
+          />
+          <Route
+            path="/itinerary"
+            element={
+              <div style={{ maxWidth: "900px", margin: "2rem auto", padding: "0 1.5rem" }}>
+                <ItineraryDisplay itinerary={itinerary} tripDetails={currentTrip} />
+              </div>
             }
           />
         </Routes>

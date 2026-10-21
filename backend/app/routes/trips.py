@@ -14,6 +14,8 @@ from app.schemas import (
     DayItinerary,
     TripPlanRequest,
     TripResponseSchema,
+    RegenerateDayRequest,
+    ItineraryDaySchema,
 )
 from app.services.trip import get_trip_service, get_itinerary_service
 from app.services.ai import get_ai_orchestrator
@@ -62,6 +64,42 @@ async def plan_trip(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate itinerary: {str(e)}",
+        )
+
+
+@router.post("/regenerate-day", response_model=ItineraryDaySchema, summary="Refine or regenerate a specific day's activities")
+async def regenerate_day(
+    request: RegenerateDayRequest,
+    user_id: str = Depends(get_current_user_id),
+    ai_orchestrator=Depends(get_ai_orchestrator),
+    history_service=Depends(get_history_service),
+) -> ItineraryDaySchema:
+    """Refine a single day's plan adapting to user feedback or travel vibe shifts."""
+    try:
+        updated_day = ai_orchestrator.regenerate_day(
+            destination=request.destination,
+            day_number=request.day_number,
+            travel_style=request.travel_style or "cultural",
+            interests=request.interests,
+            feedback=request.feedback,
+            budget_per_day=request.budget_per_day or 5000.0,
+        )
+
+        history_service.log_action(
+            user_id=user_id,
+            action="REGENERATE_DAY",
+            details={
+                "destination": request.destination,
+                "day_number": request.day_number,
+                "feedback": request.feedback,
+            },
+        )
+        return updated_day
+    except Exception as e:
+        logger.error(f"Error in regenerate_day: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to regenerate day: {str(e)}",
         )
 
 
