@@ -22,12 +22,19 @@ def build_itinerary_prompt(
     group_size: int,
     pace: str,
     budget_per_day: float,
-    dietary_restrictions: list[str] = None,
+    currency: str = "INR",
+    dietary_restrictions: Optional[Union[List[str], str]] = None,
     mobility_concerns: str = None,
 ) -> str:
     """Build the user prompt for itinerary generation."""
 
-    dietary_info = f"Dietary restrictions: {', '.join(dietary_restrictions)}" if dietary_restrictions else ""
+    if isinstance(dietary_restrictions, list):
+        dietary_value = ", ".join(dietary_restrictions)
+    elif isinstance(dietary_restrictions, str):
+        dietary_value = dietary_restrictions.strip()
+    else:
+        dietary_value = ""
+    dietary_info = f"Dietary restrictions: {dietary_value}" if dietary_value else ""
     mobility_info = f"Mobility considerations: {mobility_concerns}" if mobility_concerns else ""
 
     interests_str = ", ".join(interests) if interests else "Top sights and local highlights"
@@ -46,7 +53,7 @@ Trip Profile:
 - Travel Style: {travel_style}
 - Group Size: {group_size} traveler(s)
 - Pacing: {pace} ({pace_description})
-- Daily Budget per Person: {budget_per_day:,.2f}
+- Daily Budget per Person: {budget_per_day:,.2f} {currency}
 - Interests: {interests_str}
 {f"- {dietary_info}" if dietary_info else ""}
 {f"- {mobility_info}" if mobility_info else ""}
@@ -62,7 +69,7 @@ Route & Time Optimization Constraints:
   "end_date": "{end_date}",
   "days": <total_days>,
   "travel_style": "{travel_style}",
-  "currency": "INR",
+  "currency": "{currency}",
   "budget_per_day": {budget_per_day},
   "itinerary": [
     {{

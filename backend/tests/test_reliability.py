@@ -31,6 +31,7 @@ from fastapi import HTTPException
 
 from app.config import Settings, get_settings
 from app.main import app
+from app.prompts import build_itinerary_prompt
 from app.schemas import TripPlanRequest
 from app.services.ai import AIOrchestrator
 from app.services.trip import ItineraryService, TripService
@@ -131,6 +132,33 @@ class TripScenarioTests(unittest.TestCase):
         self.assertEqual(result.days, 3)
         self.assertEqual(result.num_travelers, 4)
         self.assertTrue(all(day.activities for day in result.itinerary))
+
+    def test_itinerary_prompt_formats_currency_and_dietary_preferences(self):
+        request = TripPlanRequest(
+            destination="Lisbon",
+            start_date="2027-05-01",
+            end_date="2027-05-02",
+            travel_style="foodie",
+            num_travelers=2,
+            budget_per_day=180,
+            currency="EUR",
+            interests=["Local cuisine", "Architecture"],
+            dietary_needs="vegetarian",
+        )
+        prompt = build_itinerary_prompt(
+            destination=request.destination,
+            start_date=request.start_date,
+            end_date=request.end_date,
+            travel_style=request.travel_style,
+            interests=request.interests,
+            group_size=request.num_travelers,
+            pace=request.pace,
+            budget_per_day=request.budget_per_day,
+            currency=request.currency,
+            dietary_restrictions=request.dietary_needs,
+        )
+        self.assertIn("180.00 EUR", prompt)
+        self.assertIn("Dietary restrictions: vegetarian", prompt)
 
     def test_saved_trip_crud_is_user_scoped_without_database_credentials(self):
         trips = TripService()
