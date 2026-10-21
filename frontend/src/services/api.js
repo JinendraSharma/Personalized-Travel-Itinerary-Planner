@@ -1,5 +1,19 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
+async function getApiError(response, fallback) {
+  const errorData = await response.json().catch(() => ({}));
+  const detail = errorData.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((issue) => {
+      const message = issue?.msg || JSON.stringify(issue);
+      const field = Array.isArray(issue?.loc) ? issue.loc.slice(1).join(".") : "";
+      return field ? `${field}: ${message}` : message;
+    }).join("; ");
+  }
+  return fallback;
+}
+
 function getAuthHeaders() {
   const token = localStorage.getItem("access_token");
   const headers = { "Content-Type": "application/json" };
@@ -18,8 +32,7 @@ export const tripsAPI = {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to plan trip (${response.status})`);
+      throw new Error(await getApiError(response, `Failed to plan trip (${response.status})`));
     }
     return response.json();
   },
@@ -32,8 +45,7 @@ export const tripsAPI = {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to create trip (${response.status})`);
+      throw new Error(await getApiError(response, `Failed to create trip (${response.status})`));
     }
     return response.json();
   },
@@ -65,8 +77,7 @@ export const tripsAPI = {
       body: JSON.stringify(tripData),
     });
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || "Failed to update trip");
+      throw new Error(await getApiError(response, "Failed to update trip"));
     }
     return response.json();
   },
@@ -89,8 +100,7 @@ export const tripsAPI = {
       body: JSON.stringify(data),
     });
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || "Failed to regenerate day");
+      throw new Error(await getApiError(response, "Failed to regenerate day"));
     }
     return response.json();
   },
