@@ -3,6 +3,9 @@ import { Routes, Route, Link, useLocation, useNavigate } from "react-router-dom"
 import { Sparkles, Compass, MapPin } from "lucide-react";
 import Home from "./pages/Home.jsx";
 import CreateTrip from "./pages/CreateTrip.jsx";
+import SavedTrips from "./pages/SavedTrips.jsx";
+import TripView from "./pages/TripView.jsx";
+import Account from "./pages/Account.jsx";
 import ItineraryDisplay from "./components/ItineraryDisplay.jsx";
 import { planTrip } from "./services/api.js";
 
@@ -49,6 +52,12 @@ function App() {
           <Link to="/create" className={location.pathname === "/create" ? "active" : ""}>
             Smart Trip Builder
           </Link>
+          <Link to="/trips" className={location.pathname === "/trips" ? "active" : ""}>
+            My Trips
+          </Link>
+          <Link to="/account" className={location.pathname === "/account" ? "active" : ""}>
+            Account
+          </Link>
           {itinerary.length > 0 && (
             <Link to="/itinerary" className={location.pathname === "/itinerary" ? "active" : ""}>
               View Itinerary
@@ -80,6 +89,9 @@ function App() {
               />
             }
           />
+          <Route path="/trips" element={<SavedTrips />} />
+          <Route path="/trips/:tripId" element={<TripView />} />
+          <Route path="/account" element={<Account />} />
           <Route
             path="/itinerary"
             element={

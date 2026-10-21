@@ -16,6 +16,7 @@ from app.schemas import (
     TripResponseSchema,
     RegenerateDayRequest,
     ItineraryDaySchema,
+    SavedTripUpdateRequest,
 )
 from app.services.trip import get_trip_service, get_itinerary_service
 from app.services.ai import get_ai_orchestrator
@@ -114,7 +115,25 @@ async def create_trip(
 ) -> TripResponse:
     """Generate and permanently save a trip and its itinerary into Supabase."""
     try:
-        generated = await ai_orchestrator.generate_itinerary(request)
+        # Save the itinerary the user is viewing. Generate only when this endpoint
+        # is called without a previously planned itinerary.
+        if request.itinerary is not None:
+            generated = TripResponseSchema(
+                destination=request.destination,
+                start_date=request.start_date,
+                end_date=request.end_date,
+                days=len(request.itinerary),
+                travel_style=request.travel_style,
+                num_travelers=request.num_travelers,
+                budget_per_day=request.budget_per_day,
+                currency=request.currency,
+                interests=request.interests,
+                pace=request.pace,
+                dietary_needs=request.dietary_needs,
+                itinerary=request.itinerary,
+            )
+        else:
+            generated = await ai_orchestrator.generate_itinerary(request)
 
         # Save trip record
         saved_trip = trip_service.create_trip(
@@ -169,14 +188,37 @@ def get_trips(
 @router.get("/{trip_id}", summary="Get trip by ID with itinerary")
 def get_trip(
     trip_id: str,
+    user_id: str = Depends(get_current_user_id),
     trip_service=Depends(get_trip_service),
     itinerary_service=Depends(get_itinerary_service),
 ):
     """Retrieve trip details including its full itinerary."""
     try:
-        trip = trip_service.get_trip_by_id(trip_id)
+        trip = trip_service.get_trip_by_id(trip_id, user_id=user_id)
         itinerary_days = itinerary_service.get_itinerary_by_trip(trip_id)
         trip["itinerary"] = itinerary_days
+        return trip
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.patch("/{trip_id}", summary="Update a saved trip and itinerary")
+def update_trip(
+    trip_id: str,
+    request: SavedTripUpdateRequest,
+    user_id: str = Depends(get_current_user_id),
+    trip_service=Depends(get_trip_service),
+    itinerary_service=Depends(get_itinerary_service),
+):
+    """Update saved trip details and optionally replace its itinerary."""
+    try:
+        updates = request.model_dump(exclude_unset=True, exclude={"itinerary"})
+        trip = trip_service.update_trip(trip_id, user_id, updates)
+        if request.itinerary is not None:
+            itinerary_service.save_itinerary(
+                trip_id, [day.model_dump() for day in request.itinerary]
+            )
+        trip["itinerary"] = itinerary_service.get_itinerary_by_trip(trip_id)
         return trip
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -187,11 +229,17 @@ def delete_trip(
     trip_id: str,
     user_id: str = Depends(get_current_user_id),
     trip_service=Depends(get_trip_service),
+    itinerary_service=Depends(get_itinerary_service),
     history_service=Depends(get_history_service),
 ):
     """Delete a trip from the database."""
-    success = trip_service.delete_trip(trip_id)
+    try:
+        success = trip_service.delete_trip(trip_id, user_id)
+    except Exception as e:
+        logger.exception("Error deleting trip")
+        raise HTTPException(status_code=500, detail="Failed to delete trip.") from e
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found.")
+    itinerary_service.delete_itinerary(trip_id)
     history_service.log_action(user_id=user_id, action="DELETE_TRIP", trip_id=trip_id)
     return None

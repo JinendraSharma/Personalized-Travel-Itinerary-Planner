@@ -71,11 +71,27 @@ class TripPlanRequest(BaseModel):
     interests: List[str] = Field(default_factory=list)
     dietary_needs: Optional[str] = Field(default=None)
     pace: str = Field(default="moderate", description="relaxed, moderate, fast-paced")
+    itinerary: Optional[List[ItineraryDaySchema]] = None
 
 
 class TripCreateRequest(TripPlanRequest):
     """Alias for trip creation request."""
     user_id: Optional[str] = None
+
+
+class SavedTripUpdateRequest(BaseModel):
+    """Editable fields for a saved trip and its itinerary."""
+    destination: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    travel_style: Optional[str] = None
+    num_travelers: Optional[int] = Field(default=None, ge=1, le=50)
+    budget_per_day: Optional[float] = Field(default=None, ge=0)
+    currency: Optional[str] = None
+    interests: Optional[List[str]] = None
+    dietary_needs: Optional[str] = None
+    pace: Optional[str] = None
+    itinerary: Optional[List[ItineraryDaySchema]] = None
 
 
 class TripResponseSchema(BaseModel):

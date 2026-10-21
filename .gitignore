@@ -1,8 +1,9 @@
 # Environment and secrets
 .env
 .env.local
+.env.*
+!.env.example
 .env.*.local
-backend/.env
 
 # Node / React
 frontend/node_modules/

@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
 function getAuthHeaders() {
   const token = localStorage.getItem("access_token");
@@ -58,6 +58,30 @@ export const tripsAPI = {
     return response.json();
   },
 
+  async updateTrip(id, tripData) {
+    const response = await fetch(`${API_BASE_URL}/trips/${id}`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(tripData),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Failed to update trip");
+    }
+    return response.json();
+  },
+
+  async deleteTrip(id) {
+    const response = await fetch(`${API_BASE_URL}/trips/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Failed to delete trip");
+    }
+  },
+
   async regenerateDay(data) {
     const response = await fetch(`${API_BASE_URL}/trips/regenerate-day`, {
       method: "POST",
@@ -96,7 +120,15 @@ export const authAPI = {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.detail || "Login failed");
     }
-    return response.json();
+    const session = await response.json();
+    localStorage.setItem("access_token", session.access_token);
+    localStorage.setItem("user_id", session.user_id);
+    return session;
+  },
+
+  logout() {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_id");
   },
 };
 

@@ -61,6 +61,42 @@ class GroqProvider(LLMProvider):
             raise AIGenerationError(f"Groq generation error: {str(e)}")
 
 
+class OllamaProvider(LLMProvider):
+    """Local Ollama chat endpoint."""
+
+    def __init__(self, base_url: str, model: str):
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+
+    async def generate(self, system_prompt: str, user_prompt: str) -> str:
+        import httpx
+
+        try:
+            async with httpx.AsyncClient(timeout=120) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/chat",
+                    json={
+                        "model": self.model,
+                        "stream": False,
+                        "format": "json",
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                    },
+                )
+                response.raise_for_status()
+                content = response.json().get("message", {}).get("content")
+                if not content:
+                    raise AIGenerationError("Empty response from Ollama")
+                return content
+        except AIGenerationError:
+            raise
+        except Exception as e:
+            logger.error("Ollama API generation failed: %s", e)
+            raise AIGenerationError("Ollama generation failed; check OLLAMA_BASE_URL and OLLAMA_MODEL") from e
+
+
 class LocalFallbackProvider(LLMProvider):
     """Context-aware local fallback provider for reliable offline/development itinerary generation."""
 
@@ -95,6 +131,11 @@ class AIOrchestrator:
             except Exception as e:
                 logger.warning(f"Could not load GroqProvider: {e}. Using fallback.")
                 self.provider = LocalFallbackProvider()
+        elif self.settings.ai_provider == "ollama":
+            self.provider = OllamaProvider(
+                base_url=self.settings.ollama_base_url,
+                model=self.settings.ollama_model,
+            )
         else:
             self.provider = LocalFallbackProvider()
 
@@ -113,7 +154,7 @@ class AIOrchestrator:
             dietary_restrictions=request.dietary_needs,
         )
 
-        if isinstance(self.provider, GroqProvider):
+        if isinstance(self.provider, (GroqProvider, OllamaProvider)):
             try:
                 raw_json = await self.provider.generate(SYSTEM_PROMPT, user_prompt)
                 parsed = json.loads(raw_json)

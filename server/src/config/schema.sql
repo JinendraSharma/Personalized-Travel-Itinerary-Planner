@@ -15,6 +15,16 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
+-- Local demo identity used by the current development auth fallback.
+INSERT INTO users (id, email, name, password_hash)
+VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  'demo@travel-planner.local',
+  'Travel Planner Demo User',
+  '!demo-account-cannot-authenticate!'
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- =========== TRIPS TABLE ===========
 CREATE TABLE IF NOT EXISTS trips (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -94,13 +104,13 @@ ALTER TABLE preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saved_places ENABLE ROW LEVEL SECURITY;
 ALTER TABLE history ENABLE ROW LEVEL SECURITY;
 
--- Permissive policies for authenticated and anon roles during development
-CREATE POLICY "Allow public read access to users" ON users FOR SELECT USING (true);
-CREATE POLICY "Allow insert access to users" ON users FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow update access to users" ON users FOR UPDATE USING (true);
-
-CREATE POLICY "Allow public access to trips" ON trips FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public access to itineraries" ON itineraries FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public access to preferences" ON preferences FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public access to saved_places" ON saved_places FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public access to history" ON history FOR ALL USING (true) WITH CHECK (true);
+-- The backend uses its server-only service-role client after validating the
+-- application's signed token and user ownership. Public/anon access is denied.
+DROP POLICY IF EXISTS "Allow public read access to users" ON users;
+DROP POLICY IF EXISTS "Allow insert access to users" ON users;
+DROP POLICY IF EXISTS "Allow update access to users" ON users;
+DROP POLICY IF EXISTS "Allow public access to trips" ON trips;
+DROP POLICY IF EXISTS "Allow public access to itineraries" ON itineraries;
+DROP POLICY IF EXISTS "Allow public access to preferences" ON preferences;
+DROP POLICY IF EXISTS "Allow public access to saved_places" ON saved_places;
+DROP POLICY IF EXISTS "Allow public access to history" ON history;

@@ -6,6 +6,7 @@ from app.routes.trips import (
     create_trip,
     get_trips,
     get_trip,
+    update_trip,
     delete_trip,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "create_trip",
     "get_trips",
     "get_trip",
+    "update_trip",
     "delete_trip",
 ]

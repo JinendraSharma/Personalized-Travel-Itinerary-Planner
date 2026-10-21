@@ -1,9 +1,9 @@
-"""Trip and Itinerary persistence service with Supabase integration."""
+"""Trip and itinerary persistence backed by Supabase."""
 
-import uuid
 import logging
-from datetime import datetime
-from typing import List, Dict, Any, Optional
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 from app.services.supabase_service import get_supabase_client
 from app.utils.errors import NotFoundError
@@ -12,140 +12,165 @@ logger = logging.getLogger(__name__)
 
 
 class TripService:
+    """Persist trips, with an in-memory fallback for local development."""
+
     def __init__(self):
         self._trips_store: Dict[str, Dict[str, Any]] = {}
 
     def create_trip(self, user_id: str, trip_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Save a new trip to the Supabase trips table or local store."""
-        trip_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
         record = {
-            "id": trip_id,
+            "id": str(uuid.uuid4()),
             "user_id": user_id,
             "destination": trip_data.get("destination", "Unknown"),
-            "start_date": trip_data.get("start_date", datetime.utcnow().strftime("%Y-%m-%d")),
-            "end_date": trip_data.get("end_date", datetime.utcnow().strftime("%Y-%m-%d")),
+            "start_date": trip_data.get("start_date"),
+            "end_date": trip_data.get("end_date"),
             "preferences": {
-                "travel_style": trip_data.get("travel_style", "cultural"),
-                "interests": trip_data.get("interests", []),
-                "budget_per_day": trip_data.get("budget_per_day", 5000.0),
-                "currency": trip_data.get("currency", "INR"),
-                "pace": trip_data.get("pace", "moderate"),
-                "num_travelers": trip_data.get("num_travelers", 1),
-                "dietary_needs": trip_data.get("dietary_needs"),
+                key: trip_data.get(key)
+                for key in (
+                    "travel_style", "interests", "budget_per_day", "currency",
+                    "pace", "num_travelers", "dietary_needs",
+                )
             },
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
+            "created_at": now,
+            "updated_at": now,
         }
-
         client = get_supabase_client()
         if client:
             try:
-                res = client.table("trips").insert(record).execute()
-                if res.data:
-                    return res.data[0]
-            except Exception as e:
-                logger.warning(f"Supabase trip insert fallback: {e}")
-
-        self._trips_store[trip_id] = record
+                result = client.table("trips").insert(record).execute()
+                if result.data:
+                    return result.data[0]
+                raise RuntimeError("Supabase did not return the inserted trip")
+            except Exception:
+                logger.exception("Could not save trip to Supabase")
+                raise
+        self._trips_store[record["id"]] = record
         return record
 
-    def get_trips(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Retrieve all trips for a user or all saved trips."""
+    def get_trips(self, user_id: str) -> List[Dict[str, Any]]:
         client = get_supabase_client()
         if client:
             try:
-                query = client.table("trips").select("*").order("created_at", desc=True)
+                result = client.table("trips").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+                return result.data or []
+            except Exception:
+                logger.exception("Could not retrieve trips from Supabase")
+                raise
+        return sorted(
+            (trip for trip in self._trips_store.values() if trip.get("user_id") == user_id),
+            key=lambda trip: trip.get("created_at", ""), reverse=True,
+        )
+
+    def get_trip_by_id(self, trip_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+        client = get_supabase_client()
+        if client:
+            try:
+                query = client.table("trips").select("*").eq("id", trip_id)
                 if user_id:
                     query = query.eq("user_id", user_id)
-                res = query.execute()
-                return res.data or []
-            except Exception as e:
-                logger.warning(f"Supabase trip fetch fallback: {e}")
+                result = query.limit(1).execute()
+                if result.data:
+                    return result.data[0]
+            except Exception:
+                logger.exception("Could not retrieve trip from Supabase")
+                raise
+        trip = self._trips_store.get(trip_id)
+        if trip and (user_id is None or trip.get("user_id") == user_id):
+            return trip
+        raise NotFoundError(f"Trip with ID {trip_id} not found.")
 
-        if user_id:
-            return [t for t in self._trips_store.values() if t.get("user_id") == user_id]
-        return list(self._trips_store.values())
+    def update_trip(self, trip_id: str, user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+        trip = self.get_trip_by_id(trip_id, user_id)
+        preferences = dict(trip.get("preferences") or {})
+        for key in ("travel_style", "interests", "budget_per_day", "currency", "pace", "num_travelers", "dietary_needs"):
+            if key in updates:
+                preferences[key] = updates[key]
+        changes = {key: updates[key] for key in ("destination", "start_date", "end_date") if key in updates}
+        changes["preferences"] = preferences
+        changes["updated_at"] = datetime.now(timezone.utc).isoformat()
 
-    def get_trip_by_id(self, trip_id: str) -> Dict[str, Any]:
-        """Fetch a specific trip record by id."""
         client = get_supabase_client()
         if client:
             try:
-                res = client.table("trips").select("*").eq("id", trip_id).execute()
-                if res.data:
-                    return res.data[0]
-            except Exception as e:
-                logger.warning(f"Supabase trip fetch by id fallback: {e}")
-
-        trip = self._trips_store.get(trip_id)
-        if not trip:
-            raise NotFoundError(f"Trip with ID {trip_id} not found.")
+                result = client.table("trips").update(changes).eq("id", trip_id).eq("user_id", user_id).execute()
+                if result.data:
+                    return result.data[0]
+                raise NotFoundError(f"Trip with ID {trip_id} not found.")
+            except NotFoundError:
+                raise
+            except Exception:
+                logger.exception("Could not update trip in Supabase")
+                raise
+        trip.update(changes)
+        self._trips_store[trip_id] = trip
         return trip
 
-    def delete_trip(self, trip_id: str) -> bool:
-        """Delete a trip by its ID."""
+    def delete_trip(self, trip_id: str, user_id: str) -> bool:
+        try:
+            self.get_trip_by_id(trip_id, user_id)
+        except NotFoundError:
+            return False
         client = get_supabase_client()
         if client:
             try:
-                client.table("trips").delete().eq("id", trip_id).execute()
+                client.table("trips").delete().eq("id", trip_id).eq("user_id", user_id).execute()
                 return True
-            except Exception as e:
-                logger.warning(f"Supabase trip delete fallback: {e}")
-
-        if trip_id in self._trips_store:
-            del self._trips_store[trip_id]
-            return True
-        return False
+            except Exception:
+                logger.exception("Could not delete trip from Supabase")
+                raise
+        self._trips_store.pop(trip_id, None)
+        return True
 
 
 class ItineraryService:
+    """Persist the day-by-day itinerary for each trip."""
+
     def __init__(self):
         self._itinerary_store: Dict[str, List[Dict[str, Any]]] = {}
 
     def save_itinerary(self, trip_id: str, days_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Save day-by-day itineraries associated with a trip."""
-        saved_days: List[Dict[str, Any]] = []
-
-        client = get_supabase_client()
-        for idx, day_info in enumerate(days_data, start=1):
-            day_id = str(uuid.uuid4())
-            record = {
-                "id": day_id,
+        now = datetime.now(timezone.utc).isoformat()
+        records = [
+            {
+                "id": str(uuid.uuid4()),
                 "trip_id": trip_id,
-                "day_number": day_info.get("day", idx),
-                "title": day_info.get("title", f"Day {idx}"),
-                "activities": day_info.get("activities", []),
-                "notes": day_info.get("summary", ""),
-                "created_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat(),
+                "day_number": day.get("day", index),
+                "title": day.get("title", f"Day {index}"),
+                "activities": day.get("activities", []),
+                "notes": day.get("summary", ""),
+                "created_at": now,
+                "updated_at": now,
             }
-
-            if client:
-                try:
-                    res = client.table("itineraries").insert(record).execute()
-                    if res.data:
-                        saved_days.append(res.data[0])
-                        continue
-                except Exception as e:
-                    logger.warning(f"Supabase itinerary insert fallback: {e}")
-
-            saved_days.append(record)
-
-        self._itinerary_store[trip_id] = saved_days
-        return saved_days
-
-    def get_itinerary_by_trip(self, trip_id: str) -> List[Dict[str, Any]]:
-        """Retrieve itinerary days for a specific trip."""
+            for index, day in enumerate(days_data, start=1)
+        ]
         client = get_supabase_client()
         if client:
             try:
-                res = client.table("itineraries").select("*").eq("trip_id", trip_id).order("day_number").execute()
-                if res.data:
-                    return res.data
-            except Exception as e:
-                logger.warning(f"Supabase itinerary fetch fallback: {e}")
+                client.table("itineraries").delete().eq("trip_id", trip_id).execute()
+                if records:
+                    result = client.table("itineraries").insert(records).execute()
+                    records = result.data or records
+            except Exception:
+                logger.exception("Could not save itinerary to Supabase")
+                raise
+        self._itinerary_store[trip_id] = records
+        return records
 
+    def get_itinerary_by_trip(self, trip_id: str) -> List[Dict[str, Any]]:
+        client = get_supabase_client()
+        if client:
+            try:
+                result = client.table("itineraries").select("*").eq("trip_id", trip_id).order("day_number").execute()
+                return result.data or []
+            except Exception:
+                logger.exception("Could not retrieve itinerary from Supabase")
+                raise
         return self._itinerary_store.get(trip_id, [])
+
+    def delete_itinerary(self, trip_id: str) -> None:
+        """Remove the development copy; Supabase removes rows through its FK cascade."""
+        self._itinerary_store.pop(trip_id, None)
 
 
 _trip_service_instance = TripService()
@@ -153,10 +178,8 @@ _itinerary_service_instance = ItineraryService()
 
 
 def get_trip_service() -> TripService:
-    """Return TripService singleton."""
     return _trip_service_instance
 
 
 def get_itinerary_service() -> ItineraryService:
-    """Return ItineraryService singleton."""
     return _itinerary_service_instance
