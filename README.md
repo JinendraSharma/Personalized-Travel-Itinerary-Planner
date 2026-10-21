@@ -69,6 +69,34 @@ Copy `backend/.env.example` to `backend/.env`, replace every placeholder with ne
 
 Production startup rejects the development JWT secret, debug mode, missing Supabase service-role credentials, and localhost CORS origins. API docs are disabled in production. Keep `.env` values in the deployment platform's secret store when deploying outside Docker Compose.
 
+## Deploy the backend to Render
+
+The root-level `render.yaml` configures a Python web service that builds from `backend/`, installs `backend/requirements.txt`, starts FastAPI with Gunicorn and Uvicorn workers, and checks `/health`. In Render, create a Blueprint from this GitHub repository and select `render.yaml` (or create a Python web service with the same settings). The service deploys from `main` when automatic deploys are enabled.
+
+Add these values in the Render service's **Environment** settings. Keep secret values in Render; do not paste a real `.env` file into Git or a public issue.
+
+| Variable | Value |
+| --- | --- |
+| `ENVIRONMENT` | `production` |
+| `DEBUG` | `false` |
+| `AI_PROVIDER` | `groq` |
+| `SUPABASE_URL` | Your Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service-role key |
+| `SUPABASE_KEY` | Your Supabase anon/public key, if used |
+| `SECRET_KEY` | A unique random secret, at least 32 characters |
+| `GROQ_API_KEY` | Your Groq API key when using the Groq provider |
+| `FRONTEND_URL` | The deployed frontend's HTTPS origin, such as `https://your-site.example` |
+
+Render supplies `PORT` automatically. Do not set it manually. `FRONTEND_URL` must be updated to the actual frontend origin before the service can start in production. Apply `backend/schema.sql` to the Supabase project before using account and trip storage. After deployment, verify the service's `/health` endpoint returns `{"status":"ok"}` and configure the frontend's `VITE_API_BASE_URL` to the Render service URL.
+
+## Deploy the frontend to Vercel
+
+Import this GitHub repository as a Vercel project, set the **Root Directory** to `frontend`, and use the Vite framework preset. The build command is `npm run build`, the output directory is `dist`, and the install command is `npm install` (Vercel can also detect these from `frontend/package.json`).
+
+Set `VITE_API_BASE_URL` in the Vercel project's environment variables to the Render backend's base URL, for example `https://your-service.onrender.com`. Do not append `/api`: the frontend calls `/trips` and `/auth` directly, and the backend does not mount those routes under an `/api` prefix. Redeploy the Vercel project after changing build environment variables.
+
+After Vercel assigns the production domain, set Render's `FRONTEND_URL` to that HTTPS origin (for example, `https://your-project.vercel.app`, without a path). This enables browser requests through the backend's CORS policy. If you use additional Vercel domains, list their origins comma-separated. Then redeploy the backend. The `frontend/vercel.json` rewrite serves the React app for direct navigation to routes such as `/trips/123`.
+
 ## Notes
 
 - Copy `backend/.env.example` to `backend/.env`. Never commit real keys.
