@@ -2,6 +2,7 @@
 
 import logging
 import json
+import re
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
@@ -159,12 +160,32 @@ class AIOrchestrator:
             try:
                 raw_json = await self.provider.generate(SYSTEM_PROMPT, user_prompt)
                 parsed = json.loads(raw_json)
-                return TripResponseSchema(**parsed)
+                generated_trip = TripResponseSchema(**parsed)
+                if self._has_repeated_stops(generated_trip):
+                    logger.info("AI response repeated trip stops; using the locally curated itinerary instead.")
+                else:
+                    return generated_trip
             except Exception as e:
                 logger.warning(f"GroqProvider execution failed: {e}. Falling back to expert local generator.")
 
         # Structured local generator ensuring reliable response
         return self._generate_expert_fallback(request)
+
+    @staticmethod
+    def _has_repeated_stops(trip: TripResponseSchema) -> bool:
+        """Detect an exact attraction/title or venue repeated on separate days."""
+        seen: Dict[str, int] = {}
+        for itinerary_day in trip.itinerary:
+            for activity in itinerary_day.activities:
+                title = re.sub(r"^day\s+\d+\s*:\s*", "", activity.title.strip().lower())
+                location = (activity.location or "").strip().lower()
+                for value in (title, location):
+                    key = re.sub(r"\s+", " ", value)
+                    if len(key) >= 5 and key in seen and seen[key] != itinerary_day.day:
+                        return True
+                    if key:
+                        seen[key] = itinerary_day.day
+        return False
 
     def _generate_expert_fallback(self, request: TripPlanRequest) -> TripResponseSchema:
         """Curate rich day-by-day schedules with Morning, Afternoon, and Evening slots."""
@@ -184,6 +205,7 @@ class AIOrchestrator:
             days = 3
 
         itinerary_days: List[ItineraryDaySchema] = []
+        used_activity_titles: set[str] = set()
 
         for d in range(1, days + 1):
             generated_day = generate_smart_procedural_day(
@@ -196,6 +218,7 @@ class AIOrchestrator:
                 dietary_needs=request.dietary_needs,
                 pace=pace,
                 destination_profile=curated,
+                used_activity_titles=used_activity_titles,
             )
             generated_activities = [ItineraryActivitySchema(**activity) for activity in generated_day["activities"]]
             itinerary_days.append(ItineraryDaySchema(

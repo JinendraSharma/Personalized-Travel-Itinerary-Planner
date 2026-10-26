@@ -68,8 +68,9 @@ Route & Time Optimization Constraints:
 1. Sequence activities geographically so morning, afternoon, and evening stops are clustered to minimize travel distance and prevent backtracking.
 2. Specify realistic time slots and transit suggestions between stops (e.g. walk, metro, taxi with estimated transit duration).
 3. Ensure lunch and dinner spots are located close to the preceding activity.
-4. Make each day distinct. Do not repeat a generic sightseeing, lunch, and promenade template across different travel styles; reflect the selected style and interests in activity choices and descriptions.
-5. Output strictly a JSON object with this structure:
+4. Make every day distinct in both its theme and its actual stops. Never repeat an attraction, restaurant, market, activity title, or exact location on another day of this trip. If the trip is longer than the famous highlights list, add different neighborhood walks, parks, local craft or food experiences, and realistic half-day excursions instead of reusing the same places.
+5. Give each day a different geographic area or a clear different focus. Use destination-specific names and details; do not invent named venues when you are unsure. For a less-documented destination, describe a verifiable type of place and advise the traveler to check current opening times.
+6. Output strictly a JSON object with this structure:
 {{
   "destination": "{destination}",
   "start_date": "{start_date}",

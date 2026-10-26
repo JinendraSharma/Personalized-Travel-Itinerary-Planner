@@ -716,6 +716,7 @@ def generate_smart_procedural_day(
     dietary_needs: Optional[str] = None,
     pace: str = "moderate",
     destination_profile: Optional[Dict[str, Any]] = None,
+    used_activity_titles: Optional[set[str]] = None,
 ) -> Dict[str, Any]:
     """Generates authentic, high-quality distinct activities for any global destination."""
     dest = destination.strip().title()
@@ -727,6 +728,7 @@ def generate_smart_procedural_day(
     profile = destination_profile or {}
     city = profile.get("city", dest)
     specialties = profile.get("local_specialties") or []
+    used_activity_titles = used_activity_titles if used_activity_titles is not None else set()
     curated_activities = [
         item
         for day in profile.get("days", [])
@@ -739,7 +741,7 @@ def generate_smart_procedural_day(
         used: Optional[set[str]] = None,
         candidates: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[Dict[str, Any]]:
-        used = used or set()
+        used = used if used is not None else set()
         ranked = []
         items = candidates if candidates is not None else curated_activities
         for item in items:
@@ -754,7 +756,10 @@ def generate_smart_procedural_day(
             return None
         cutoff = max(1, ranked[0][0] - 1)
         candidates = [item for score, item in ranked if score >= cutoff]
-        return candidates[(day_number - 1 + seed % len(candidates)) % len(candidates)]
+        selected = candidates[(day_number - 1 + seed % len(candidates)) % len(candidates)]
+        used.add(selected["title"])
+        used_activity_titles.add(selected["title"])
+        return selected
 
     interest_text = " ".join(interests).lower()
     food_focus = style == "foodie" or any(term in interest_text for term in ("food", "cuisine", "gastronomy", "culinary"))
@@ -825,7 +830,15 @@ def generate_smart_procedural_day(
 
     if style == "nightlife" or (style not in ("foodie", "cultural", "sightseeing") and nightlife_focus):
         morning_category, afternoon_category, evening_category = "Brunch & Leisure", "Arts & Evening Warm-up", "Nightlife & Live Music"
-        breakfast = specialties[(day_number - 1) % len(specialties)] if specialties else "a relaxed local brunch"
+        brunch_options = ["a neighborhood bakery brunch", "a traditional tea-and-snack brunch", "a produce-market breakfast", "a slow café brunch"]
+        breakfast = specialties[(day_number - 1) % len(specialties)] if specialties else brunch_options[(day_number - 1) % len(brunch_options)]
+        daytime_options = [
+            ("A creative-quarter gallery and café afternoon", "Browse independent galleries and design shops, then take a slow café break before the evening plans."),
+            ("A market-lane wander and street-food warm-up", "Explore a lively market area in daylight, sampling a small local snack and saving room for later."),
+            ("A live-arts district preview", "Look for a matinee, exhibition, or public performance, then take an early dinner close to tonight's venue."),
+            ("A neighborhood music-history walk", "Explore local music venues and record shops while they are open, then plan a convenient route to the evening scene."),
+        ]
+        daytime_title, daytime_description = daytime_options[(day_number - 1) % len(daytime_options)]
         night_item = best_curated_item(
             ["night", "evening", "music", "bazaar", "market", "performance"],
             candidates=curated_evenings,
@@ -835,36 +848,55 @@ def generate_smart_procedural_day(
         morning_act = f"Slow-start brunch before a night out: {breakfast}"
         morning_desc = f"Keep the morning easy with a late start and a relaxed brunch featuring {breakfast}. Save energy for the evening and check local opening times before setting out."
         afternoon_loc = f"{city} arts and entertainment quarter"
-        afternoon_act = f"Golden-hour wander through {city} before the evening scene"
-        afternoon_desc = f"Explore a lively central neighborhood, then choose a live-music room, performance, or lounge that fits your style. Check tonight's schedule and plan a safe ride back."
+        afternoon_act = f"{daytime_title} in {city}"
+        afternoon_desc = daytime_description
         evening_loc = night_place
-        evening_act = f"Live music, lounges & after-dark {city}"
-        evening_desc = f"Make this the late-night highlight: enjoy the atmosphere around {night_place}, then choose a current live-music or lounge option nearby. Confirm today's hours and transport."
+        night_fallbacks = ["Live music and a late set", "Night-market bites and people-watching", "A local performance and post-show drinks", "A relaxed lounge night with a DJ"]
+        evening_act = night_item.get("title", f"{night_fallbacks[(day_number - 1) % len(night_fallbacks)]} in {city}") if night_item else f"{night_fallbacks[(day_number - 1) % len(night_fallbacks)]} in {city}"
+        evening_desc = night_item.get("description", f"Make this the late-night highlight around {night_place}. Check tonight's schedule, opening hours, and safe transport options.") if night_item else f"Make this the late-night highlight around {night_place}. Check tonight's schedule, opening hours, and safe transport options."
     elif style == "foodie" or (style not in ("cultural", "sightseeing") and food_focus):
         morning_category, afternoon_category, evening_category = "Breakfast Tasting", "Food Market & Tasting", "Local Dining"
-        dish_a = specialties[(day_number - 1) % len(specialties)] if specialties else "regional breakfast specialties"
-        dish_b = specialties[(day_number + 1) % len(specialties)] if len(specialties) > 1 else "seasonal local dishes"
-        food_item = best_curated_item(["food", "dining", "gastronomy", "cuisine", "market", "bazaar", "breakfast", "lunch"])
-        evening_food = best_curated_item(["food", "dining", "gastronomy", "cuisine", "night", "dinner"], {food_item.get("title")} if food_item else set())
+        fallback_breakfasts = ["a neighborhood bakery breakfast", "a traditional tea-and-snack stop", "a produce-market breakfast", "a slow café brunch"]
+        fallback_tastings = ["seasonal market snacks", "regional breads and sweets", "fresh produce and street-food bites", "a small-plate neighborhood tasting"]
+        fallback_dinners = ["a family-run regional kitchen", "a busy neighborhood food lane", "a modern local bistro", "a relaxed late supper near the evening quarter"]
+        dish_a = specialties[(day_number - 1) % len(specialties)] if specialties else fallback_breakfasts[(day_number - 1) % len(fallback_breakfasts)]
+        dish_b = specialties[(day_number + 1) % len(specialties)] if len(specialties) > 1 else fallback_tastings[(day_number - 1) % len(fallback_tastings)]
+        food_item = best_curated_item(["breakfast", "food", "dining", "gastronomy", "cuisine", "market", "bazaar"])
+        market_item = best_curated_item(["market", "bazaar", "food", "dining", "gastronomy", "cuisine"])
+        evening_food = best_curated_item(["night", "dinner", "food", "dining", "gastronomy", "cuisine"])
         morning_loc = food_item.get("location", f"{city} breakfast quarter") if food_item else f"{city} breakfast quarter"
         morning_act = f"Local breakfast tasting: {dish_a}"
         morning_desc = f"Start with a guided tasting of {dish_a}. Try a small portion at a time, ask vendors how the dish is traditionally served, and leave room for the rest of the day's food stops."
-        afternoon_loc = food_item.get("location", f"{city} market district") if food_item else f"{city} market district"
-        afternoon_act = food_item.get("title", f"Market-to-table tasting walk in {city}") if food_item else f"Market-to-table tasting walk in {city}"
-        afternoon_desc = f"Follow a compact market and neighborhood-food route, sampling {dish_b} alongside seasonal specialties. Keep the stops close together and pause for a relaxed lunch."
+        afternoon_loc = market_item.get("location", f"{city} market district") if market_item else f"{city} market district"
+        afternoon_act = market_item.get("title", f"Market-to-table tasting: {dish_b}") if market_item else f"Market-to-table tasting: {dish_b}"
+        afternoon_desc = market_item.get("description", f"Follow a compact market and neighborhood-food route, sampling {dish_b} alongside seasonal specialties. Keep the stops close together and pause for a relaxed lunch.") if market_item else f"Follow a compact market and neighborhood-food route, sampling {dish_b} alongside seasonal specialties. Keep the stops close together and pause for a relaxed lunch."
         evening_loc = evening_food.get("location", f"{city} dinner district") if evening_food else f"{city} dinner district"
-        evening_act = evening_food.get("title", f"Dinner and signature bites around {city}") if evening_food else f"Dinner and signature bites around {city}"
-        evening_desc = f"Finish with a sit-down dinner and one more local favorite. Ask for the house specialty and check current service hours before you go."
+        dinner_theme = fallback_dinners[(day_number - 1) % len(fallback_dinners)]
+        evening_act = evening_food.get("title", f"Dinner at {dinner_theme}") if evening_food else f"Dinner at {dinner_theme}"
+        evening_desc = evening_food.get("description", f"Finish with a relaxed meal at {dinner_theme}. Ask about seasonal dishes and check current service hours before you go.") if evening_food else f"Finish with a relaxed meal at {dinner_theme}. Ask about seasonal dishes and check current service hours before you go."
     elif history_focus:
         morning_category, afternoon_category = "History & Architecture", "Museums & Heritage"
         heritage_item = best_curated_item(["heritage", "historic", "history", "palace", "fort", "temple", "architecture", "museum"])
-        second_heritage = best_curated_item(["heritage", "historic", "history", "palace", "fort", "temple", "architecture", "museum", "art"], {heritage_item.get("title")} if heritage_item else set())
-        morning_loc = heritage_item.get("location", morning_loc) if heritage_item else morning_loc
-        morning_act = heritage_item.get("title", f"Historic {city}: architecture and origins walk") if heritage_item else f"Historic {city}: architecture and origins walk"
-        morning_desc = heritage_item.get("description", f"Follow the layers of {city}'s history through its architecture, founding stories, and important civic landmarks.") if heritage_item else f"Follow the layers of {city}'s history through its architecture, founding stories, and important civic landmarks."
-        afternoon_loc = second_heritage.get("location", f"{city} museum and old-town quarter") if second_heritage else f"{city} museum and old-town quarter"
-        afternoon_act = second_heritage.get("title", f"Museum collections and historic streets of {city}") if second_heritage else f"Museum collections and historic streets of {city}"
-        afternoon_desc = second_heritage.get("description", f"Spend the afternoon with local collections and a short old-town walk. Look for exhibits that connect {city}'s past to the neighborhoods around you.") if second_heritage else f"Spend the afternoon with local collections and a short old-town walk. Look for exhibits that connect {city}'s past to the neighborhoods around you."
+        already_selected = set(used_activity_titles)
+        if heritage_item:
+            already_selected.add(heritage_item["title"])
+        second_heritage = best_curated_item(
+            ["heritage", "historic", "history", "palace", "fort", "temple", "architecture", "museum", "art"],
+            already_selected,
+        )
+        day_topics = [
+            ("Origins and old-town lanes", "historic center", "museum and civic quarter", "Trace the city's growth through its public spaces, architecture, and neighborhood stories."),
+            ("Markets and local makers", "traditional market district", "independent craft and shop lanes", "Explore working market streets, looking for crafts and everyday local life."),
+            ("Parks and city viewpoints", "public garden or city park", "cultural collections quarter", "Balance museums with an unhurried outdoor walk and a viewpoint or public garden."),
+            ("Living culture and neighborhood food", "contemporary neighborhood", "local arts and food quarter", "Spend time in a different neighborhood, connecting local traditions with its current food and arts scene."),
+        ]
+        day_topic, morning_area, afternoon_area, day_description = day_topics[(day_number - 1) % len(day_topics)]
+        morning_loc = heritage_item.get("location", f"{city} {morning_area}") if heritage_item else f"{city} {morning_area}"
+        morning_act = heritage_item.get("title", f"{day_topic}: a local walk in {city}") if heritage_item else f"{day_topic}: a local walk in {city}"
+        morning_desc = heritage_item.get("description", day_description) if heritage_item else day_description
+        afternoon_loc = second_heritage.get("location", f"{city} {afternoon_area}") if second_heritage else f"{city} {afternoon_area}"
+        afternoon_act = second_heritage.get("title", f"{day_topic}: collections, makers, and local stories") if second_heritage else f"{day_topic}: collections, makers, and local stories"
+        afternoon_desc = second_heritage.get("description", f"Use this afternoon to explore {day_topic.lower()} in {city}. Choose a museum, market, or community-run venue that fits the day's focus and check its opening hours.") if second_heritage else f"Use this afternoon to explore {day_topic.lower()} in {city}. Choose a museum, market, or community-run venue that fits the day's focus and check its opening hours."
         if food_focus and specialties:
             dish = specialties[(day_number - 1) % len(specialties)]
             afternoon_desc += f" Pause nearby to try a local favorite: {dish}."
@@ -885,8 +917,52 @@ def generate_smart_procedural_day(
             evening_category = "Heritage Walk & Dining"
         else:
             evening_loc = f"{city} historic quarter"
-            evening_act = f"Old-town twilight walk and regional dinner in {city}"
-            evening_desc = f"End with a relaxed walk through the historic quarter, noticing how the streets and public spaces change after dark, followed by dinner close by."
+            evening_options = [
+                ("Old-town twilight walk and regional dinner", "Notice how the historic streets change after dark, then choose a well-reviewed local restaurant nearby."),
+                ("Market-lane evening and casual local supper", "Browse a different market street at a relaxed pace and try a seasonal specialty from a busy local stall."),
+                ("Public garden sunset and neighborhood café", "Take a quiet outdoor break before dinner at a neighborhood café; check local closing times before setting out."),
+                ("Live arts and a late neighborhood meal", "Look for a local performance or community arts event, then choose dinner close to the venue and arrange a safe ride back."),
+            ]
+            evening_title, evening_description = evening_options[(day_number - 1) % len(evening_options)]
+            evening_act = f"{evening_title} in {city}"
+            evening_desc = evening_description
+
+        # Spend the destination's curated evening recommendations across the
+        # trip before falling back to a general neighborhood suggestion.
+        if curated_evenings and not food_focus and not nightlife_focus:
+            evening_item = best_curated_item(
+                ["night", "evening", "music", "market", "park", "sunset", "dining", "culture"],
+                candidates=curated_evenings,
+            )
+            if evening_item:
+                evening_loc = evening_item["location"]
+                evening_act = evening_item["title"]
+                evening_desc = evening_item["description"]
+                evening_category = evening_item.get("category", "Evening Experience")
+
+    elif curated_activities:
+        # Styles such as adventure, relaxation, budget, and luxury should still
+        # use real destination-specific stops instead of the same generic day.
+        style_keywords = {
+            "adventure": ["nature", "waterfall", "wildlife", "trail", "lake", "scenic", "outdoor", "adventure"],
+            "relaxation": ["lake", "park", "garden", "sunset", "beach", "leisure", "relax", "scenic"],
+            "budget": ["market", "bazaar", "walk", "street", "park", "food", "public"],
+            "luxury": ["palace", "fine", "dining", "view", "heritage", "culture", "scenic"],
+        }
+        keywords = style_keywords.get(style, [])
+        keywords += [word for word in re.findall(r"[a-z]{4,}", interest_text) if word not in keywords]
+        first_stop = best_curated_item(keywords or ["heritage", "culture", "nature", "market"])
+        second_stop = best_curated_item(keywords or ["food", "market", "architecture"])
+        third_stop = best_curated_item(keywords or ["evening", "park", "dining"])
+        if first_stop:
+            morning_loc, morning_act, morning_desc = first_stop["location"], first_stop["title"], first_stop["description"]
+            morning_category = first_stop.get("category", "Local Experience")
+        if second_stop:
+            afternoon_loc, afternoon_act, afternoon_desc = second_stop["location"], second_stop["title"], second_stop["description"]
+            afternoon_category = second_stop.get("category", "Local Experience")
+        if third_stop:
+            evening_loc, evening_act, evening_desc = third_stop["location"], third_stop["title"], third_stop["description"]
+            evening_category = third_stop.get("category", "Local Experience")
 
     diet_note = f" (Special attention given to {dietary_needs})" if dietary_needs else ""
     t_mode = transit_modes[(seed + day_number) % len(transit_modes)]
@@ -930,19 +1006,22 @@ def generate_smart_procedural_day(
         })
 
     theme_styles = {
-        "cultural": f"Day {day_number}: Royal Heritage, Sacred Monuments & Historic Quarters",
-        "foodie": f"Day {day_number}: Gastronomic Odyssey, Old Bazaars & Secret Family Recipes",
-        "adventure": f"Day {day_number}: Scenic Expeditions, Hidden Trails & Natural Vistas",
-        "beach": f"Day {day_number}: Coastal Coves, Sparkling Waters & Beachside Relaxation",
-        "tropical": f"Day {day_number}: Lush Greenery, Waterfalls & Eco Escapes",
-        "sightseeing": f"Day {day_number}: Photogenic Vistas, Iconic Architecture & City Panoramas",
-        "nightlife": f"Day {day_number}: Sunset Rooftops, Twilight Markets & Social Evenings",
+        "cultural": "Culture & local stories",
+        "foodie": "Food & local flavors",
+        "adventure": "Outdoor discovery",
+        "beach": "Coastal escape",
+        "tropical": "Nature & green spaces",
+        "sightseeing": "City highlights",
+        "nightlife": "After-dark experiences",
+        "relaxation": "A slower day",
     }
-    day_title = theme_styles.get(style, f"Day {day_number}: Highlights & Treasures of {dest}")
+    day_theme = theme_styles.get(style, f"{style.capitalize()} experiences")
+    title_location = evening_loc if style == "nightlife" else morning_loc
+    day_title = f"Day {day_number}: {day_theme} around {title_location}"
 
     return {
         "day": day_number,
         "title": day_title,
-        "summary": f"Carefully sequenced itinerary in {dest} tailored for {style} travelers focusing on {first_interest} and {second_interest}.",
+        "summary": f"Explore {morning_loc} and {afternoon_loc}, with time for {first_interest.lower()} and {second_interest.lower()} along the way.",
         "activities": activities,
     }
