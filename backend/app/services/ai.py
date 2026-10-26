@@ -3,7 +3,7 @@
 import logging
 import json
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 from app.config import get_settings
 from app.utils.errors import AIGenerationError
@@ -14,6 +14,7 @@ from app.schemas.schemas import (
     ItineraryActivitySchema,
 )
 from app.prompts import SYSTEM_PROMPT, build_itinerary_prompt
+from app.services.destination_data import find_curated_destination, generate_smart_procedural_day
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +174,7 @@ class AIOrchestrator:
         budget = request.budget_per_day or 5000.0
         currency = request.currency
         interests = request.interests or ["Local Culture", "Gastronomy"]
+        curated = find_curated_destination(request.destination)
 
         try:
             start = datetime.strptime(request.start_date.strip(), "%Y-%m-%d").date()
@@ -181,77 +183,28 @@ class AIOrchestrator:
         except Exception:
             days = 3
 
-        theme_titles = {
-            "cultural": ["Heritage & Historic Wonders", "Art, Museums & Traditions", "Ancient Temples & Local Architecture", "Old Town Discovery"],
-            "beach": ["Coastal Charm & Morning Surf", "Hidden Coves & Beachside Dining", "Water Sports & Sunset Pier", "Ocean Breeze & Seafood Feast"],
-            "adventure": ["Alpine Treks & Scenic Trails", "Adrenaline Peaks & River Rafting", "Canyon Exploration & Wilderness Hike", "Panoramic Ridge Expedition"],
-            "foodie": ["Epicurean Walking Tour & Street Bites", "Michelin & Authentic Heritage Dining", "Local Vineyard & Spice Market Safari", "Pastry, Coffee & Artisan Tastings"],
-            "tropical": ["Rainforest Canopies & Hidden Lagoons", "Botanical Sanctuaries & Exotic Wildlife", "Island Hopping & Crystal Springs", "Verdant Valleys & Eco Retreat"],
-            "sightseeing": ["Iconic Panoramas & Landmark Highlights", "Architectural Wonders & City Miradors", "Historic Quarters & Photography Walks", "Sunset Horizons & Night Cityscapes"],
-            "nightlife": ["Sunset Rooftops & Evening Lounges", "Live Music Venues & Cultural Theatre", "Night Food Bazaars & Speakeasies", "Harbor Lights & Festive Nightwalks"],
-        }.get(style, ["Highlights & City Icons", "Culture & Hidden Corners", "Flavors & Panoramic Views"])
-
         itinerary_days: List[ItineraryDaySchema] = []
 
         for d in range(1, days + 1):
-            day_theme = theme_titles[(d - 1) % len(theme_titles)]
-            activities: List[ItineraryActivitySchema] = []
-
-            # Morning Slot
-            activities.append(
-                ItineraryActivitySchema(
-                    time_slot="Morning (09:00 - 12:30)",
-                    title=f"{dest} Signature: {day_theme.split('&')[0].strip()}",
-                    description=f"Begin your day exploring the iconic sights of {dest} celebrating {interests[0] if interests else 'heritage'}. Includes scenic walk and photo stops.",
-                    location=f"Central {dest}",
-                    category="Attraction",
-                    estimated_cost=round(budget * 0.35, 2),
-                    neighborhood=f"Central {dest} Cluster",
-                    transit_time="10-15 mins from hotel base",
-                    transit_mode="Walk / Metro",
-                )
+            generated_day = generate_smart_procedural_day(
+                destination=dest,
+                day_number=d,
+                travel_style=style,
+                interests=interests,
+                budget_per_day=budget,
+                currency=currency,
+                dietary_needs=request.dietary_needs,
+                pace=pace,
+                destination_profile=curated,
             )
-
-            # Afternoon Slot (geographically sequenced next to morning stop)
-            activities.append(
-                ItineraryActivitySchema(
-                    time_slot="Afternoon (13:00 - 16:30)",
-                    title=f"Curated {style.capitalize()} Gastronomy & Discovery",
-                    description=f"Enjoy lunch at handpicked local bistros" + (f" (accommodating {request.dietary_needs})" if request.dietary_needs else "") + f", followed by {interests[1] if len(interests) > 1 else 'cultural immersion'}.",
-                    location=f"{dest} Historic District",
-                    category="Dining & Leisure",
-                    estimated_cost=round(budget * 0.40, 2),
-                    neighborhood=f"{dest} Historic Quarter",
-                    transit_time="8 mins walk (zero backtracking)",
-                    transit_mode="Walk",
-                )
-            )
-
-            # Evening Slot (for moderate and fast paces)
-            if pace in ["moderate", "fast", "fast-paced"]:
-                activities.append(
-                    ItineraryActivitySchema(
-                        time_slot="Evening (17:30 - 21:00)",
-                        title=f"Twilight Ambiance & Skyline Leisure in {dest}",
-                        description=f"Relax along the vibrant promenade and night markets at a {pace} pace to complete Day {d}.",
-                        location=f"{dest} Promenade",
-                        category="Entertainment",
-                        estimated_cost=round(budget * 0.25, 2),
-                        neighborhood=f"{dest} Waterfront",
-                        transit_time="12 mins via direct tram/metro",
-                        transit_mode="Metro / Tram",
-                    )
-                )
-
-            itinerary_days.append(
-                ItineraryDaySchema(
-                    day=d,
-                    date=request.start_date,
-                    title=f"Day {d}: {day_theme}",
-                    summary=f"Balanced schedule in {dest} designed for {style} travelers.",
-                    activities=activities,
-                )
-            )
+            generated_activities = [ItineraryActivitySchema(**activity) for activity in generated_day["activities"]]
+            itinerary_days.append(ItineraryDaySchema(
+                day=d,
+                date=(start + timedelta(days=d - 1)).isoformat() if 'start' in locals() else request.start_date,
+                title=generated_day["title"],
+                summary=generated_day["summary"],
+                activities=generated_activities,
+            ))
 
         return TripResponseSchema(
             destination=dest,

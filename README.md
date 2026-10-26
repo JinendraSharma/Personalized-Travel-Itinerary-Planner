@@ -102,8 +102,8 @@ After Vercel assigns the production domain, set Render's `FRONTEND_URL` to that 
 - Copy `backend/.env.example` to `backend/.env`. Never commit real keys.
 - `.env`, `node_modules`, and Python `venv` are listed in `.gitignore`.
 - Without Supabase credentials, trip storage falls back to process memory for development and is cleared when the backend restarts.
-- Open **My Trips** in the app to view, edit, and delete saved trips. Each saved trip has a detail page with shareable summaries, a copied link, Markdown and JSON downloads, and day regeneration.
-- Authentication uses signed, expiring HS256 tokens. The demo identity is available only in development; production requires registration or sign-in.
+- Open **My Trips** in the app to view, update trip details, and delete saved trips. Each saved trip has a rendered detail page with shareable summaries, a copied link, a readable Markdown download, and day regeneration.
+- Authentication uses signed, expiring HS256 tokens. All user-scoped API requests require a signed-in account. Without Supabase configured, development accounts and trips are kept in process memory and reset when the backend restarts.
 
 ## Conclusion
 

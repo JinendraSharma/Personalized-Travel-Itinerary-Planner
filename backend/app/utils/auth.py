@@ -13,7 +13,6 @@ from fastapi import Header, HTTPException, status
 
 from app.config import get_settings
 
-DEFAULT_DEMO_USER_ID = "00000000-0000-0000-0000-000000000001"
 _PASSWORD_ITERATIONS = 310_000
 
 
@@ -76,10 +75,8 @@ def _user_id_from_token(token: str) -> str:
 
 
 def get_current_user_id(authorization: Optional[str] = Header(None)) -> str:
-    """Verify a signed bearer token; allow the demo identity only in development."""
+    """Require a valid signed bearer token for every user-scoped API request."""
     if not authorization:
-        if get_settings().environment.lower() == "development":
-            return DEFAULT_DEMO_USER_ID
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
 
     scheme, separator, token = authorization.partition(" ")

@@ -99,11 +99,9 @@ function TripView() {
     }
   }
 
-  function downloadFile(format) {
-    const filename = `${(trip.destination || "trip").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "trip"}-itinerary.${format}`;
-    const content = format === "json" ? JSON.stringify(trip, null, 2) : summary;
-    const type = format === "json" ? "application/json" : "text/markdown;charset=utf-8";
-    const blobUrl = URL.createObjectURL(new Blob([content], { type }));
+  function downloadFile() {
+    const filename = `${(trip.destination || "trip").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "trip"}-itinerary.md`;
+    const blobUrl = URL.createObjectURL(new Blob([summary], { type: "text/markdown;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = blobUrl;
     anchor.download = filename;
@@ -111,7 +109,7 @@ function TripView() {
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(blobUrl);
-    setNotice(`${format.toUpperCase()} itinerary downloaded.`);
+    setNotice("Readable itinerary summary downloaded.");
   }
 
   async function regenerate(day) {
@@ -166,8 +164,7 @@ function TripView() {
           <button className="btn-secondary" onClick={() => copyText(shareUrl, "Trip link copied.")}><Clipboard size={16} /> Copy link</button>
           <button className="btn-secondary" onClick={() => copyText(summary, "Itinerary summary copied.")}><Clipboard size={16} /> Copy summary</button>
           <button className="btn-secondary" onClick={shareTrip} disabled={sharing}><Share2 size={16} /> {sharing ? "Sharing…" : "Share"}</button>
-          <button className="btn-secondary" onClick={() => downloadFile("md")}><Download size={16} /> Download</button>
-          <button className="btn-secondary" onClick={() => downloadFile("json")}><Download size={16} /> JSON</button>
+          <button className="btn-secondary" onClick={downloadFile}><Download size={16} /> Download itinerary</button>
           <button className="btn-primary" onClick={() => navigate("/trips", { state: { editTripId: trip.id } })}><Edit3 size={16} /> Edit trip</button>
         </div>
       </motion.header>
@@ -175,7 +172,7 @@ function TripView() {
       {error && <div className="error-banner" role="alert">{error}</div>}
       {notice && <div className="saved-trip-notice" role="status"><Check size={16} /> {notice}</div>}
 
-      {trip.itinerary.length === 0 ? <div className="saved-trips-empty"><h2>No itinerary days saved</h2><p>Edit this trip in My Trips to add itinerary details.</p></div> : (
+      {trip.itinerary.length === 0 ? <div className="saved-trips-empty"><h2>No itinerary days saved</h2><p>Generate an itinerary for this trip to see its day-by-day plan here.</p></div> : (
         <div className="trip-view-days">
           {trip.itinerary.map((day, index) => (
             <motion.article className="trip-view-day" key={day.day} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}>

@@ -28,20 +28,20 @@ function TripForm({ onSubmit, loading = false }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>
-        Destination
-        <input value={destination} onChange={(event) => setDestination(event.target.value)} placeholder="e.g. Jaipur" required />
+    <form className="quick-trip-form" onSubmit={handleSubmit}>
+      <label className="quick-trip-field quick-trip-destination">
+        <span>Where to?</span>
+        <input value={destination} onChange={(event) => setDestination(event.target.value)} placeholder="e.g. Jaipur, India" required />
       </label>
-      <label>
-        Number of days
+      <label className="quick-trip-field quick-trip-days">
+        <span>How many days?</span>
         <input type="number" min="1" max="30" value={days} onChange={(event) => setDays(event.target.value)} required />
       </label>
-      <label>
-        Interests (comma-separated)
-        <input value={interests} onChange={(event) => setInterests(event.target.value)} placeholder="history, food, nature" />
+      <label className="quick-trip-field quick-trip-interests">
+        <span>What do you enjoy?</span>
+        <input value={interests} onChange={(event) => setInterests(event.target.value)} placeholder="History, local food, nature" />
       </label>
-      <button type="submit" disabled={loading}>{loading ? "Planning…" : "Generate itinerary"}</button>
+      <button className="btn-primary quick-trip-submit" type="submit" disabled={loading}>{loading ? "Planning your trip…" : "Create my itinerary"}</button>
     </form>
   );
 }

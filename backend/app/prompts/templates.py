@@ -38,6 +38,11 @@ def build_itinerary_prompt(
     mobility_info = f"Mobility considerations: {mobility_concerns}" if mobility_concerns else ""
 
     interests_str = ", ".join(interests) if interests else "Top sights and local highlights"
+    style_focus = {
+        "nightlife": "Make nightlife the primary theme: include evening-first pacing, live music or performance options, lounges or night markets, and a specific after-dark neighborhood. Do not fill the day with generic history tours or ordinary restaurant meals.",
+        "foodie": "Make local food the primary theme in every time slot: name destination-specific dishes, food streets or markets, tastings, and meal stops. Keep generic sightseeing secondary.",
+        "cultural": "Prioritize specific local history, architecture, museums, traditions, and heritage sites. Explain what makes each place meaningful; let food support the cultural route instead of replacing it.",
+    }.get(travel_style.lower(), "Make the selected travel style and interests visible in the activities themselves, not only in day titles or summaries.")
     pace_description = {
         "relaxed": "one or two main activities per day with plenty of rest",
         "moderate": "two to three main activities per day with some downtime",
@@ -55,6 +60,7 @@ Trip Profile:
 - Pacing: {pace} ({pace_description})
 - Daily Budget per Person: {budget_per_day:,.2f} {currency}
 - Interests: {interests_str}
+- Personalization focus: {style_focus}
 {f"- {dietary_info}" if dietary_info else ""}
 {f"- {mobility_info}" if mobility_info else ""}
 
@@ -62,7 +68,8 @@ Route & Time Optimization Constraints:
 1. Sequence activities geographically so morning, afternoon, and evening stops are clustered to minimize travel distance and prevent backtracking.
 2. Specify realistic time slots and transit suggestions between stops (e.g. walk, metro, taxi with estimated transit duration).
 3. Ensure lunch and dinner spots are located close to the preceding activity.
-4. Output strictly a JSON object with this structure:
+4. Make each day distinct. Do not repeat a generic sightseeing, lunch, and promenade template across different travel styles; reflect the selected style and interests in activity choices and descriptions.
+5. Output strictly a JSON object with this structure:
 {{
   "destination": "{destination}",
   "start_date": "{start_date}",

@@ -15,16 +15,6 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
--- Local demo identity used by the current development auth fallback.
-INSERT INTO users (id, email, name, password_hash)
-VALUES (
-  '00000000-0000-0000-0000-000000000001',
-  'demo@travel-planner.local',
-  'Travel Planner Demo User',
-  '!demo-account-cannot-authenticate!'
-)
-ON CONFLICT (id) DO NOTHING;
-
 -- =========== TRIPS TABLE ===========
 CREATE TABLE IF NOT EXISTS trips (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

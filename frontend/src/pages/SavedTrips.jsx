@@ -7,7 +7,6 @@ function SavedTrips() {
   const [trips, setTrips] = useState([]);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(null);
-  const [itineraryText, setItineraryText] = useState("[]");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -40,12 +39,6 @@ function SavedTrips() {
         end_date: trip.end_date || "",
         budget_per_day: trip.preferences?.budget_per_day ?? "",
       });
-      setItineraryText(JSON.stringify((trip.itinerary || []).map((day) => ({
-        day: day.day_number ?? day.day,
-        title: day.title,
-        summary: day.notes ?? day.summary ?? "",
-        activities: day.activities || [],
-      })), null, 2));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not open this trip.");
     }
@@ -61,12 +54,9 @@ function SavedTrips() {
     setError("");
     setNotice("");
     try {
-      const itinerary = JSON.parse(itineraryText);
-      if (!Array.isArray(itinerary)) throw new Error("Itinerary must be a JSON array.");
       const updated = await tripsAPI.updateTrip(selected.id, {
         ...form,
         budget_per_day: form.budget_per_day === "" ? null : Number(form.budget_per_day),
-        itinerary,
       });
       setSelected(updated);
       await loadTrips();
@@ -126,15 +116,14 @@ function SavedTrips() {
           {selected && form && (
             <form className="saved-trip-editor" onSubmit={saveTrip}>
               <h2>Edit trip</h2>
-              <Link className="saved-trip-detail-link" to={`/trips/${selected.id}`}>Open share and export view</Link>
+              <Link className="saved-trip-detail-link" to={`/trips/${selected.id}`}>View full itinerary</Link>
               <label>Destination<input required value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} /></label>
               <div className="saved-trip-date-fields">
                 <label>Start date<input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></label>
                 <label>End date<input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} /></label>
               </div>
               <label>Daily budget<input type="number" min="0" value={form.budget_per_day} onChange={(e) => setForm({ ...form, budget_per_day: e.target.value })} /></label>
-              <label>Itinerary (JSON)<textarea rows="15" spellCheck="false" value={itineraryText} onChange={(e) => setItineraryText(e.target.value)} /></label>
-              <p className="saved-trip-editor-hint">Edit the day titles, summaries, and activities in the JSON array.</p>
+              <p className="saved-trip-editor-hint">Your day-by-day itinerary stays saved while you update these trip details.</p>
               <button className="btn-primary" type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</button>
             </form>
           )}

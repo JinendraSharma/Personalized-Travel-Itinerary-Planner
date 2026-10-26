@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Routes, Route, Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Sparkles, Compass, MapPin } from "lucide-react";
 import Home from "./pages/Home.jsx";
 import CreateTrip from "./pages/CreateTrip.jsx";
@@ -9,6 +9,10 @@ import Account from "./pages/Account.jsx";
 import ItineraryDisplay from "./components/ItineraryDisplay.jsx";
 import { planTrip } from "./services/api.js";
 
+function RequireAuth({ authenticated, children }) {
+  return authenticated ? children : <Navigate to="/" replace />;
+}
+
 function App() {
   const [itinerary, setItinerary] = useState([]);
   const [currentTrip, setCurrentTrip] = useState(null);
@@ -16,6 +20,18 @@ function App() {
   const [error, setError] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
+  // Keep authenticated users signed in across reloads while sending new visitors to login.
+  const [authenticated, setAuthenticated] = useState(() => Boolean(localStorage.getItem("access_token")));
+
+  useEffect(() => {
+    const syncAuthentication = () => setAuthenticated(Boolean(localStorage.getItem("access_token")));
+    window.addEventListener("auth-change", syncAuthentication);
+    window.addEventListener("storage", syncAuthentication);
+    return () => {
+      window.removeEventListener("auth-change", syncAuthentication);
+      window.removeEventListener("storage", syncAuthentication);
+    };
+  }, []);
 
   async function handlePlanTrip(trip) {
     setLoading(true);
@@ -46,21 +62,19 @@ function App() {
           <span>TravelAI Planner</span>
         </Link>
         <nav className="nav-links">
-          <Link to="/" className={location.pathname === "/" ? "active" : ""}>
-            Home
-          </Link>
-          <Link to="/create" className={location.pathname === "/create" ? "active" : ""}>
-            Smart Trip Builder
-          </Link>
-          <Link to="/trips" className={location.pathname === "/trips" ? "active" : ""}>
-            My Trips
-          </Link>
-          <Link to="/account" className={location.pathname === "/account" ? "active" : ""}>
-            Account
-          </Link>
-          {itinerary.length > 0 && (
-            <Link to="/itinerary" className={location.pathname === "/itinerary" ? "active" : ""}>
-              View Itinerary
+          {authenticated ? (
+            <>
+              <Link to="/" className={location.pathname === "/" ? "active" : ""}>Home</Link>
+              <Link to="/create" className={location.pathname === "/create" ? "active" : ""}>Smart Trip Builder</Link>
+              <Link to="/trips" className={location.pathname.startsWith("/trips") ? "active" : ""}>My Trips</Link>
+              <Link to="/account" className={location.pathname === "/account" ? "active" : ""}>Account</Link>
+              {itinerary.length > 0 && (
+                <Link to="/itinerary" className={location.pathname === "/itinerary" ? "active" : ""}>View Itinerary</Link>
+              )}
+            </>
+          ) : (
+            <Link to="/account" className={location.pathname === "/account" ? "active" : ""}>
+              Sign in
             </Link>
           )}
         </nav>
@@ -71,7 +85,7 @@ function App() {
         <Routes>
           <Route
             path="/"
-            element={
+            element={authenticated ? (
               <Home
                 onPlanTrip={handlePlanTrip}
                 itinerary={itinerary}
@@ -79,27 +93,28 @@ function App() {
                 loading={loading}
                 error={error}
               />
-            }
+            ) : <Account forceLogin />}
           />
           <Route
             path="/create"
-            element={
+            element={<RequireAuth authenticated={authenticated}>
               <CreateTrip
                 onTripGenerated={handleTripGenerated}
               />
-            }
+            </RequireAuth>}
           />
-          <Route path="/trips" element={<SavedTrips />} />
-          <Route path="/trips/:tripId" element={<TripView />} />
-          <Route path="/account" element={<Account />} />
+          <Route path="/trips" element={<RequireAuth authenticated={authenticated}><SavedTrips /></RequireAuth>} />
+          <Route path="/trips/:tripId" element={<RequireAuth authenticated={authenticated}><TripView /></RequireAuth>} />
+          <Route path="/account" element={<Account forceLogin={!authenticated} />} />
           <Route
             path="/itinerary"
-            element={
+            element={<RequireAuth authenticated={authenticated}>
               <div style={{ maxWidth: "900px", margin: "2rem auto", padding: "0 1.5rem" }}>
                 <ItineraryDisplay itinerary={itinerary} tripDetails={currentTrip} />
               </div>
-            }
+            </RequireAuth>}
           />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>

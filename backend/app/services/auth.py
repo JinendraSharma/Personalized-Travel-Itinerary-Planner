@@ -75,3 +75,16 @@ def authenticate_user(email: str, password: str) -> Dict[str, Any]:
     if not user or not verify_password(password, user.get("password_hash", "")):
         raise AuthenticationError
     return user
+
+
+def get_user_by_id(user_id: str) -> Dict[str, Any]:
+    """Return safe profile fields for an authenticated user."""
+    client = get_supabase_client()
+    if client:
+        result = client.table("users").select("id,email,name,created_at").eq("id", user_id).limit(1).execute()
+        user = result.data[0] if result.data else None
+    else:
+        user = _users.get(user_id)
+    if not user:
+        raise AuthenticationError
+    return {key: user.get(key) for key in ("id", "email", "name", "created_at")}
