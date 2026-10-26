@@ -26,11 +26,16 @@ def current_user(user_id: str = Depends(get_current_user_id)) -> UserResponse:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Profile is temporarily unavailable") from exc
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(request: UserRegisterRequest) -> UserResponse:
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def register(request: UserRegisterRequest) -> TokenResponse:
     try:
         user = register_user(request.email, request.name, request.password)
-        return UserResponse(id=user["id"], email=user["email"], name=user["name"], created_at=user.get("created_at"))
+        return TokenResponse(
+            access_token=create_access_token(user["id"]),
+            user_id=user["id"],
+            email=user["email"],
+            name=user["name"],
+        )
     except EmailAlreadyRegistered as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists") from exc
     except Exception as exc:

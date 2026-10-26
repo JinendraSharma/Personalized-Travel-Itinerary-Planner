@@ -25,9 +25,6 @@ def register_user(email: str, name: str, password: str) -> Dict[str, Any]:
     client = get_supabase_client()
     if client:
         try:
-            existing = client.table("users").select("id").eq("email", normalized_email).limit(1).execute()
-            if existing.data:
-                raise EmailAlreadyRegistered
             record = {
                 "id": str(uuid.uuid4()),
                 "email": normalized_email,
@@ -40,9 +37,9 @@ def register_user(email: str, name: str, password: str) -> Dict[str, Any]:
             if result.data:
                 return result.data[0]
             raise RuntimeError("The user could not be saved")
-        except EmailAlreadyRegistered:
-            raise
-        except Exception:
+        except Exception as exc:
+            if getattr(exc, "code", None) == "23505" or "duplicate key" in str(exc).lower():
+                raise EmailAlreadyRegistered from exc
             logger.exception("User registration failed")
             raise
 

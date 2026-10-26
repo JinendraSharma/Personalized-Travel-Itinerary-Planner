@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+const TRIPS_UPDATED_EVENT = "travel-planner:trips-updated";
 
 async function getApiError(response, fallback) {
   const errorData = await response.json().catch(() => ({}));
@@ -59,7 +60,9 @@ function rememberTrip(trip) {
     itinerary: trip.itinerary ?? previous?.itinerary ?? [],
     preferences: { ...(previous?.preferences || {}), ...(trip.preferences || {}) },
   };
-  writeCachedTrips([merged, ...cached.filter((item) => item.id !== trip.id)]);
+  const updated = [merged, ...cached.filter((item) => item.id !== trip.id)];
+  writeCachedTrips(updated);
+  window.dispatchEvent(new CustomEvent(TRIPS_UPDATED_EVENT, { detail: updated }));
   return merged;
 }
 
@@ -86,7 +89,30 @@ function makeLocalTrip(tripData) {
 }
 
 function removeCachedTrip(id) {
-  writeCachedTrips(readCachedTrips().filter((trip) => trip.id !== id));
+  const updated = readCachedTrips().filter((trip) => trip.id !== id);
+  writeCachedTrips(updated);
+  window.dispatchEvent(new CustomEvent(TRIPS_UPDATED_EVENT, { detail: updated }));
+}
+
+async function refreshTripsFromServer() {
+  const response = await fetch(`${API_BASE_URL}/trips`, { headers: getAuthHeaders() });
+  if (!response.ok) throw new Error("Failed to fetch trips");
+  const trips = await response.json();
+  const cached = readCachedTrips();
+  const merged = new Map(cached.map((trip) => [trip.id, trip]));
+  for (const trip of trips) {
+    const previous = merged.get(trip.id);
+    merged.set(trip.id, {
+      ...previous,
+      ...trip,
+      itinerary: trip.itinerary ?? previous?.itinerary ?? [],
+      preferences: { ...(previous?.preferences || {}), ...(trip.preferences || {}) },
+    });
+  }
+  const result = [...merged.values()].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+  writeCachedTrips(result);
+  window.dispatchEvent(new CustomEvent(TRIPS_UPDATED_EVENT, { detail: result }));
+  return result;
 }
 
 export const tripsAPI = {
@@ -122,32 +148,27 @@ export const tripsAPI = {
   },
 
   async getTrips() {
+    const cached = readCachedTrips();
+    if (cached.length) {
+      // Render saved trips immediately; refresh quietly so a slow API does not
+      // hold the page behind a spinner. Components listen for the update event.
+      refreshTripsFromServer().catch(() => {});
+      return cached;
+    }
     try {
-      const response = await fetch(`${API_BASE_URL}/trips`, { headers: getAuthHeaders() });
-      if (!response.ok) throw new Error("Failed to fetch trips");
-      const trips = await response.json();
-      const cached = readCachedTrips();
-      const merged = new Map(cached.map((trip) => [trip.id, trip]));
-      for (const trip of trips) {
-        const previous = merged.get(trip.id);
-        merged.set(trip.id, {
-          ...previous,
-          ...trip,
-          itinerary: trip.itinerary ?? previous?.itinerary ?? [],
-          preferences: { ...(previous?.preferences || {}), ...(trip.preferences || {}) },
-        });
-      }
-      const result = [...merged.values()].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
-      writeCachedTrips(result);
-      return result;
+      return await refreshTripsFromServer();
     } catch (error) {
-      const cached = readCachedTrips();
-      if (cached.length) return cached;
       throw error instanceof Error ? error : new Error("Failed to fetch trips");
     }
   },
 
+  getCachedTrips() {
+    return readCachedTrips();
+  },
+
   async getTripById(id) {
+    const cached = readCachedTrips().find((trip) => trip.id === id);
+    if (cached?.itinerary?.length) return cached;
     try {
       const response = await fetch(`${API_BASE_URL}/trips/${id}`, { headers: getAuthHeaders() });
       if (!response.ok) throw new Error("Trip not found");
@@ -241,7 +262,9 @@ export const authAPI = {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.detail || "Registration failed");
     }
-    return response.json();
+    const session = await response.json();
+    storeSession(session, data.email);
+    return session;
   },
 
   async login(data) {
@@ -255,11 +278,7 @@ export const authAPI = {
       throw new Error(errorData.detail || "Login failed");
     }
     const session = await response.json();
-    localStorage.setItem("access_token", session.access_token);
-    localStorage.setItem("user_id", session.user_id);
-    localStorage.setItem("user_email", session.email || data.email);
-    if (session.name) localStorage.setItem("user_name", session.name);
-    window.dispatchEvent(new Event("auth-change"));
+    storeSession(session, data.email);
     return session;
   },
 
@@ -269,6 +288,14 @@ export const authAPI = {
     window.dispatchEvent(new Event("auth-change"));
   },
 };
+
+function storeSession(session, fallbackEmail) {
+  localStorage.setItem("access_token", session.access_token);
+  localStorage.setItem("user_id", session.user_id);
+  localStorage.setItem("user_email", session.email || fallbackEmail);
+  if (session.name) localStorage.setItem("user_name", session.name);
+  window.dispatchEvent(new Event("auth-change"));
+}
 
 // Backwards compatibility
 export async function planTrip(trip) {

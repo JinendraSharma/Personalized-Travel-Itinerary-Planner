@@ -4,17 +4,23 @@ import { CalendarDays, MapPin, Pencil, Trash2 } from "lucide-react";
 import { tripsAPI } from "../services/api.js";
 
 function SavedTrips() {
-  const [trips, setTrips] = useState([]);
+  const [trips, setTrips] = useState(() => tripsAPI.getCachedTrips());
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => tripsAPI.getCachedTrips().length === 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const location = useLocation();
 
   const loadTrips = useCallback(async () => {
-    setLoading(true);
+    const cached = tripsAPI.getCachedTrips();
+    if (cached.length) {
+      setTrips(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError("");
     try {
       setTrips(await tripsAPI.getTrips());
@@ -25,7 +31,12 @@ function SavedTrips() {
     }
   }, []);
 
-  useEffect(() => { loadTrips(); }, [loadTrips]);
+  useEffect(() => {
+    const syncTrips = (event) => setTrips(event.detail || []);
+    window.addEventListener("travel-planner:trips-updated", syncTrips);
+    loadTrips();
+    return () => window.removeEventListener("travel-planner:trips-updated", syncTrips);
+  }, [loadTrips]);
 
   const openTrip = useCallback(async (id) => {
     setError("");

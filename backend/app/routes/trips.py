@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Depends
 
 from app.utils.auth import get_current_user_id
 from app.services.history import get_history_service
@@ -34,6 +34,7 @@ router = APIRouter(prefix="/trips", tags=["Trips"])
 @router.post("/plan", response_model=TripResponse, summary="Generate personalized trip itinerary")
 async def plan_trip(
     request: CreateTripRequest,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     ai_orchestrator=Depends(get_ai_orchestrator),
     history_service=Depends(get_history_service),
@@ -50,7 +51,8 @@ async def plan_trip(
         itinerary_result = await ai_orchestrator.generate_itinerary(request)
 
         # Log action to history service
-        history_service.log_action(
+        background_tasks.add_task(
+            history_service.log_action,
             user_id=user_id,
             action="GENERATE_ITINERARY",
             details={
@@ -107,6 +109,7 @@ async def regenerate_day(
 @router.post("/create", response_model=TripResponse, status_code=status.HTTP_201_CREATED, summary="Save trip to database")
 async def create_trip(
     request: CreateTripRequest,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     trip_service=Depends(get_trip_service),
     itinerary_service=Depends(get_itinerary_service),
@@ -156,10 +159,11 @@ async def create_trip(
 
         # Save itinerary days
         days_payload = [day.model_dump() for day in generated.itinerary]
-        itinerary_service.save_itinerary(trip_id=trip_id, days_data=days_payload)
+        itinerary_service.save_itinerary(trip_id=trip_id, days_data=days_payload, replace_existing=False)
 
         # Log to history
-        history_service.log_action(
+        background_tasks.add_task(
+            history_service.log_action,
             user_id=user_id,
             action="CREATE_TRIP",
             trip_id=trip_id,

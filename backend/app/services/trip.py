@@ -129,7 +129,12 @@ class ItineraryService:
     def __init__(self):
         self._itinerary_store: Dict[str, List[Dict[str, Any]]] = {}
 
-    def save_itinerary(self, trip_id: str, days_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def save_itinerary(
+        self,
+        trip_id: str,
+        days_data: List[Dict[str, Any]],
+        replace_existing: bool = True,
+    ) -> List[Dict[str, Any]]:
         now = datetime.now(timezone.utc).isoformat()
         records = [
             {
@@ -147,7 +152,8 @@ class ItineraryService:
         client = get_supabase_client()
         if client:
             try:
-                client.table("itineraries").delete().eq("trip_id", trip_id).execute()
+                if replace_existing:
+                    client.table("itineraries").delete().eq("trip_id", trip_id).execute()
                 if records:
                     result = client.table("itineraries").insert(records).execute()
                     records = result.data or records

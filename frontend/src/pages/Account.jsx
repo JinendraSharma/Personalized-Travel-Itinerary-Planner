@@ -6,8 +6,12 @@ import { authAPI, tripsAPI } from "../services/api.js";
 function Account({ forceLogin = false }) {
   const navigate = useNavigate();
   const [authenticated, setAuthenticated] = useState(() => !forceLogin && Boolean(localStorage.getItem("access_token")));
-  const [profile, setProfile] = useState(null);
-  const [trips, setTrips] = useState([]);
+  const [profile, setProfile] = useState(() => {
+    const name = localStorage.getItem("user_name");
+    const email = localStorage.getItem("user_email");
+    return name || email ? { name, email } : null;
+  });
+  const [trips, setTrips] = useState(() => tripsAPI.getCachedTrips());
   const [registering, setRegistering] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -16,7 +20,9 @@ function Account({ forceLogin = false }) {
 
   const loadAccount = useCallback(async () => {
     if (!localStorage.getItem("access_token")) return;
-    setProfileLoading(true);
+    const cachedProfile = { name: localStorage.getItem("user_name"), email: localStorage.getItem("user_email") };
+    setProfile((current) => current || cachedProfile);
+    setProfileLoading(!cachedProfile.name && !cachedProfile.email);
     setError("");
     try {
       const [profileResult, tripsResult] = await Promise.allSettled([authAPI.getProfile(), tripsAPI.getTrips()]);
@@ -25,8 +31,7 @@ function Account({ forceLogin = false }) {
         localStorage.setItem("user_email", profileResult.value.email);
         localStorage.setItem("user_name", profileResult.value.name);
       } else {
-        setProfile({ name: localStorage.getItem("user_name"), email: localStorage.getItem("user_email") });
-        setError("This local account was cleared when the backend restarted. Create the account again, or connect Supabase to keep profiles and saved trips between restarts.");
+        if (!cachedProfile.name && !cachedProfile.email) setError("Your account details are unavailable. Please sign in again.");
       }
       if (tripsResult.status === "fulfilled") setTrips(tripsResult.value);
       else setError("We couldn’t load your saved trips. Please try again.");
@@ -39,13 +44,19 @@ function Account({ forceLogin = false }) {
 
   useEffect(() => { if (authenticated) loadAccount(); }, [authenticated, loadAccount]);
 
+  useEffect(() => {
+    const syncTrips = (event) => setTrips(event.detail || []);
+    window.addEventListener("travel-planner:trips-updated", syncTrips);
+    return () => window.removeEventListener("travel-planner:trips-updated", syncTrips);
+  }, []);
+
   async function submit(event) {
     event.preventDefault();
     setLoading(true);
     setError("");
     try {
       if (registering) await authAPI.register(form);
-      await authAPI.login({ email: form.email, password: form.password });
+      else await authAPI.login({ email: form.email, password: form.password });
       setAuthenticated(true);
       navigate("/");
     } catch (err) {
