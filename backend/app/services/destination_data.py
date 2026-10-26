@@ -697,12 +697,116 @@ DESTINATION_DATABASE: Dict[str, Dict[str, Any]] = {
     },
 }
 
+# Additional destination-specific day plans extend the local catalog to four
+# distinct days for each supported city. Opening times and seasonal access can
+# change, so descriptions deliberately avoid promising a live schedule.
+def _extra_day(theme: str, morning: tuple, afternoon: tuple, evening: tuple) -> Dict[str, Any]:
+    def activity(item: tuple) -> Dict[str, Any]:
+        title, description, location, category = item
+        return {
+            "title": title,
+            "description": description,
+            "location": location,
+            "category": category,
+            "neighborhood": location,
+            "transit_time": "Check local route options",
+            "transit_mode": "Local transit",
+            "cost_pct": 0.33,
+        }
+
+    return {
+        "theme": theme,
+        "summary": f"A distinct local route focused on {theme.lower()}.",
+        "morning": activity(morning),
+        "afternoon": activity(afternoon),
+        "evening": activity(evening),
+    }
+
+
+SUPPLEMENTAL_DESTINATION_DAYS: Dict[str, List[Dict[str, Any]]] = {
+    "indore": [
+        _extra_day("Museum collections and hilltop Jain heritage",
+            ("Central Museum of Indore", "Explore regional sculpture, inscriptions, and archaeological collections; confirm current visitor hours before going.", "Central Museum, Residency", "Museum & History"),
+            ("Gomatgiri Jain pilgrimage site", "Visit the hilltop Jain complex and its large Gomateshwara statue; dress respectfully and plan transport for the out-of-center location.", "Gomatgiri, Airport Road", "Spiritual Heritage"),
+            ("Pitra Parvat sunset viewpoint", "Take in the broad city and countryside outlook from this hilltop Hanuman site; check access and local conditions before the visit.", "Pitra Parvat, Bijasan Road", "Hilltop & Spiritual Sites")),
+    ],
+    "jaipur": [
+        _extra_day("Royal memorials, printmaking, and modern marble architecture",
+            ("Gaitore Royal Cenotaphs", "Walk among the carved marble and sandstone chhatris built as memorials for Jaipur's former rulers.", "Gaitore, Jaipur–Amber Road", "Royal Heritage"),
+            ("Anokhi Museum of Hand Printing", "Learn how block printing is practiced and preserved through tools, textiles, and demonstrations; verify the museum's current schedule.", "Anokhi Museum, Amber", "Craft & Design"),
+            ("Birla Temple after dusk", "See the white-marble Lakshmi-Narayan temple and its detailed carvings; observe local customs and check visiting hours.", "Birla Temple, Moti Dungari", "Temple Architecture")),
+    ],
+    "delhi": [
+        _extra_day("Central museums, memorials, and garden tombs",
+            ("National Museum galleries", "Explore collections spanning Indian art, archaeology, and cultural history; check current exhibitions and opening hours.", "National Museum, Janpath", "Museum & History"),
+            ("Safdarjung's Tomb", "Walk through the late Mughal garden-tomb complex and notice its architecture and landscaped setting.", "Safdarjung's Tomb, Lodhi Road", "Monument & Gardens"),
+            ("Lodhi-era neighborhood dinner", "Choose a locally reviewed restaurant around the Lodhi Road or Khan Market area after an evening garden walk.", "Lodhi Road and Khan Market", "Neighborhood Dining")),
+        _extra_day("Craft traditions, old fortifications, and public gardens",
+            ("National Crafts Museum", "Browse craft traditions and regional objects in the museum's galleries; check for current demonstrations before visiting.", "National Crafts Museum, Pragati Maidan", "Craft & Culture"),
+            ("Purana Qila ramparts and grounds", "Explore the old fort complex and its open grounds, allowing time for the museum or lake area if open.", "Purana Qila, Mathura Road", "Fort & Archaeology"),
+            ("Sunder Nursery evening stroll", "Unwind among restored heritage structures, gardens, and planted landscapes; verify seasonal hours and entry details.", "Sunder Nursery, Nizamuddin", "Garden & Heritage")),
+    ],
+    "mumbai": [
+        _extra_day("Island caves, city collections, and Colaba street life",
+            ("Elephanta Caves", "Take the ferry from the Gateway of India to explore the island's rock-cut cave art; check ferry operation, entry details, and the weekly closure before travel.", "Elephanta Island, Mumbai Harbour", "Rock-cut Heritage"),
+            ("Chhatrapati Shivaji Maharaj Vastu Sangrahalaya", "Explore art, archaeology, and natural-history collections in the museum near the Fort district.", "CSMVS, Fort", "Museum & Art"),
+            ("Colaba Causeway evening walk", "Browse the lively shopping street and choose dinner in the Colaba neighborhood.", "Colaba Causeway", "Markets & Dining")),
+        _extra_day("Kanheri's cave heritage and Mumbai's green north",
+            ("Sanjay Gandhi National Park", "Spend the morning in the city's large protected green space; check entry rules and transport options ahead of time.", "Sanjay Gandhi National Park, Borivali", "Nature & Outdoors"),
+            ("Kanheri Caves", "Explore the Buddhist cave complex within the park and its rock-cut architecture; allow time for the park journey.", "Kanheri Caves, Borivali", "Buddhist Heritage"),
+            ("Bandra fort and seafront", "Walk the historic Bandra fort area and nearby promenade for open views across the coast.", "Bandra Fort and Bandstand", "Coastal Walk")),
+    ],
+    "goa": [
+        _extra_day("Island villages, ferry crossings, and birdlife",
+            ("Divar Island village loop", "Take a local ferry crossing and explore the island's quiet lanes and village scenery; verify ferry times before setting out.", "Divar Island, via Ribandar", "Island & Village Life"),
+            ("Dr. Salim Ali Bird Sanctuary", "Look for wetland and mangrove birdlife on Chorao Island; bring sun protection and check access conditions.", "Chorao Island, Mandovi estuary", "Birdlife & Nature"),
+            ("Ribandar riverside sunset", "Return toward Ribandar for a relaxed riverside evening and a meal featuring Goan specialties.", "Ribandar, Mandovi River", "Riverside & Local Food")),
+        _extra_day("South Goa's quieter coast and inland spice traditions",
+            ("Cabo de Rama Fort", "Explore the coastal fort ruins and sea-facing viewpoints; arrange transport in advance and check local access.", "Cabo de Rama, Canacona", "Coastal Heritage"),
+            ("South Goa village and spice garden visit", "Choose a currently operating local spice farm or village experience and confirm reservations, transport, and meal inclusions directly.", "Ponda hinterland", "Food & Agriculture"),
+            ("Palolem shoreline evening", "Take a gentle coastal walk and enjoy dinner from a licensed local restaurant; follow beach and swimming safety notices.", "Palolem, Canacona", "Beach & Dining")),
+    ],
+    "paris": [
+        _extra_day("Left Bank art, gardens, and literary cafés",
+            ("Musée d'Orsay", "Explore the museum's 19th-century art collection inside the former railway station; book ahead and check current opening days.", "Musée d'Orsay, Left Bank", "Art Museum"),
+            ("Luxembourg Gardens", "Walk the formal gardens, tree-lined paths, and open lawns around the Luxembourg Palace.", "Jardin du Luxembourg, 6th arrondissement", "Garden & Leisure"),
+            ("Saint-Germain-des-Prés café evening", "Choose a café or small restaurant around Saint-Germain-des-Prés and enjoy an unhurried Left Bank evening.", "Saint-Germain-des-Prés", "Neighborhood Dining")),
+        _extra_day("Canal-side streets, local markets, and Père-Lachaise",
+            ("Canal Saint-Martin walk", "Follow the canal-side footpaths, bridges, and waterside cafés; keep to public paths and check current event access.", "Canal Saint-Martin, 10th arrondissement", "Canal & Neighborhood Walk"),
+            ("Marché des Enfants Rouges", "Browse Paris's historic covered market and choose a casual lunch from its food stalls; verify current market hours.", "Marché des Enfants Rouges, Marais", "Market & Food"),
+            ("Père-Lachaise cemetery walk", "Explore the cemetery's public paths and historic memorials respectfully; use the official map and check access hours.", "Père-Lachaise, 20th arrondissement", "History & Gardens")),
+    ],
+    "tokyo": [
+        _extra_day("Ueno museums, pond paths, and market stalls",
+            ("Tokyo National Museum", "Explore Japanese and Asian art collections in Ueno Park; check exhibition details and opening days.", "Tokyo National Museum, Ueno Park", "Museum & Art"),
+            ("Shinobazu Pond and Ueno Park", "Walk the pond paths and park grounds, with time for a seasonal stop at a nearby museum or shrine.", "Shinobazu Pond, Ueno", "Park & Nature"),
+            ("Ameyoko market food walk", "Browse the busy market lanes under the railway and try a few casual local snacks.", "Ameyoko, Ueno–Okachimachi", "Market & Street Food")),
+        _extra_day("Yanaka lanes, temple district, and old-town cafés",
+            ("Nezu Shrine grounds", "Visit the shrine grounds and walk the surrounding traditional neighborhood; check seasonal access notes.", "Nezu Shrine, Bunkyo", "Shrine & Culture"),
+            ("Yanaka Ginza shopping street", "Explore the compact shopping street for everyday snacks, small shops, and neighborhood life.", "Yanaka Ginza, Yanaka", "Neighborhood & Food"),
+            ("Yanaka backstreet café evening", "Finish with a quiet café or small local restaurant in Yanaka and plan the return via nearby rail stations.", "Yanaka, Taito", "Local Dining")),
+        _extra_day("Kichijoji parkside calm and western Tokyo culture",
+            ("Inokashira Park", "Take an easy walk around the park's ponds and tree-lined paths; boat rentals and seasonal scenery vary.", "Inokashira Park, Kichijoji", "Park & Outdoors"),
+            ("Ghibli Museum or Kichijoji galleries", "If you secure advance admission, visit the Ghibli Museum; otherwise choose a local gallery or shop street nearby.", "Mitaka and Kichijoji", "Museum & Arts"),
+            ("Harmonica Yokocho dinner", "Explore the narrow alley dining area for small eateries and a lively local-food evening.", "Harmonica Yokocho, Kichijoji", "Food & Nightlife")),
+    ],
+    "lisbon": [
+        _extra_day("Ajuda's botanical gardens and creative west-side Lisbon",
+            ("Ajuda Botanical Garden", "Walk Portugal's historic botanical garden and its formal terraces; verify current opening hours and entrance details.", "Jardim Botânico da Ajuda, Ajuda", "Garden & Nature"),
+            ("Ajuda and Belém neighborhood museums", "Choose a nearby palace or museum that is open on the day and explore the quieter Ajuda streets between stops.", "Ajuda, western Lisbon", "Culture & Museums"),
+            ("LX Factory food and design evening", "Browse the converted industrial complex's shops and eateries; check which venues and events are open that evening.", "LX Factory, Alcântara", "Food, Design & Nightlife")),
+    ],
+}
+
+
 # Helper to find matching destination profile
 def find_curated_destination(dest_input: str) -> Optional[Dict[str, Any]]:
     clean = re.sub(r"[^a-zA-Z\s]", "", dest_input.lower()).strip()
     for key, data in DESTINATION_DATABASE.items():
         if key in clean or clean in key or data["city"].lower() in clean:
-            return data
+            profile = dict(data)
+            profile["days"] = [*data.get("days", []), *SUPPLEMENTAL_DESTINATION_DAYS.get(key, [])]
+            return profile
     return None
 
 
