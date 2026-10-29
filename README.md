@@ -4,6 +4,19 @@ A SkillWallet capstone project that helps users plan a trip and generate a simpl
 
 **Stack:** React (frontend), FastAPI with Python (backend), Supabase (database).
 
+## Eight-phase project documentation
+
+The project documentation is organized into eight phases, from ideation and requirements through development, testing, and demonstration. Start with the [documentation index](7.%20Project%20Documentation/README.md), or open a phase directly:
+
+1. [Brainstorming and Ideation](1.%20Brainstorming%20and%20Ideation/README.md)
+2. [Requirement Analysis](2.%20Requirement%20Analysis/README.md)
+3. [Project Design](3.%20Project%20Design%20Phase/README.md)
+4. [Project Planning](4.%20Project%20Planning%20Phase/README.md)
+5. [Project Development](5.%20Project%20Development%20Phase/README.md)
+6. [Project Testing](6.%20Project%20Testing/README.md)
+7. [Project Documentation](7.%20Project%20Documentation/README.md)
+8. [Project Demonstration](8.%20Project%20Demonstration/README.md)
+
 ## Project structure
 
 ```
