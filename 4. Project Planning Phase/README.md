@@ -68,3 +68,7 @@ This sequence is a sensible project plan inferred from the current architecture,
 - Supabase schema and deployment settings match the deployed environment.
 - Reliability checks and production build are run by the project owner before release.
 - Demo scenarios and known limitations are stated accurately.
+
+## Phase deliverables
+
+- [Project Planning - Personalized Travel Itinerary Planner](Project%20Planning%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)

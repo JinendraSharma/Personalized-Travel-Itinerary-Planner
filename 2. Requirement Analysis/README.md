@@ -70,3 +70,10 @@ Trip and activity shapes are defined in `backend/app/schemas/schemas.py`. The tr
 ## Requirements traceability
 
 The API and screens listed here describe current source behavior. They are not a claim that every acceptance criterion has been independently executed in this documentation pass; see [Phase 6 — Project Testing](../6.%20Project%20Testing/README.md).
+
+## Phase deliverables
+
+- [Customer Journey Map - Personalized Travel Itinerary Planner](Customer%20Journey%20Map%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Data Flow Diagram - Personalized Travel Itinerary Planner](Data%20Flow%20Diagram%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Solution Requirements - Personalized Travel Itinerary Planner](Solution%20Requirements%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Technology Stack - Personalized Travel Itinerary Planner](Technology%20Stack%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)

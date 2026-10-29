@@ -70,3 +70,9 @@ When Supabase credentials are configured, backend services use Supabase for acco
 ## Development status
 
 This document records the observed source structure and setup. It does not imply a production deployment is live or that deployment credentials/configuration have been verified. Hugging Face configuration fields may exist, but a Hugging Face provider adapter is not implemented in the inspected AI service.
+
+## Phase deliverables
+
+- [Code-Layout, Readability and Reusability - Personalized Travel Itinerary Planner](Code-Layout%2C%20Readability%20and%20Reusability%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Coding & Solution - Personalized Travel Itinerary Planner](Coding%20%26%20Solution%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [No. of Functional Features Included in the Solution - Personalized Travel Itinerary Planner](No.%20of%20Functional%20Features%20Included%20in%20the%20Solution%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)

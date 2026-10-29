@@ -48,3 +48,9 @@ The selected concept is a focused itinerary planning and management app. The fea
 - The input fields, screens, and actions above were checked against the current frontend and backend source.
 - The user groups and planning pain points are reasonable product assumptions, not validated research findings.
 - Generated activity and cost suggestions are planning content, not confirmed reservations or live quotes.
+
+## Phase deliverables
+
+- [Brainstorming & Idea Prioritization - Personalized Travel Itinerary Planner](Brainstorming%20%26%20Idea%20Prioritization%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Define Problem Statements - Personalized Travel Itinerary Planner](Define%20Problem%20Statements%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Empathy Map - Personalized Travel Itinerary Planner](Empathy%20Map%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)

@@ -49,3 +49,7 @@ The frontend package currently defines a Vite development server, production bui
 ## Reporting results
 
 For a release report, record the date, environment, exact command, pass/fail counts, and any skipped scenarios. Do not describe a test as passed until it has actually been run and its output reviewed.
+
+## Phase deliverables
+
+- [Performance Testing - Personalized Travel Itinerary Planner](Performance%20Testing%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)

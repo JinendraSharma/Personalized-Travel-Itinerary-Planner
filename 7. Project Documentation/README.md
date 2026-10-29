@@ -41,3 +41,8 @@ The FastAPI app exposes `/health` for a health check. Authentication routes are 
 - Reconcile duplicate database schema files if both are intended to be authoritative.
 - Record actual test/build/deployment results in release-specific notes rather than implying them in evergreen documentation.
 - Review screenshots and personal data before sharing project deliverables.
+
+## Phase deliverables
+
+- [Project Executable Files - Personalized Travel Itinerary Planner](Project%20Executable%20Files%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Sample Project Documentation - Personalized Travel Itinerary Planner](Sample%20Project%20Documentation%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)

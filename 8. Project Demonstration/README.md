@@ -50,3 +50,11 @@ Show the complete planning workflow: account access, preference entry, itinerary
 ## Future improvements to mention
 
 Potential next steps include stronger date validation, automated frontend/end-to-end tests, a deliberate public-sharing permission model, and optional integrations for maps, transit, weather, or verified travel data. These are proposals, not claims about the current implementation.
+
+## Phase deliverables
+
+- [Communication - Personalized Travel Itinerary Planner](Communication%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Demonstration of Proposed Features - Personalized Travel Itinerary Planner](Demonstration%20of%20Proposed%20Features%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Project Demo Planning - Personalized Travel Itinerary Planner](Project%20Demo%20Planning%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Scalability & Future Plan - Personalized Travel Itinerary Planner](Scalability%20%26%20Future%20Plan%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Team Involvement in Demonstration - Personalized Travel Itinerary Planner](Team%20Involvement%20in%20Demonstration%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)

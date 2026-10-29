@@ -73,3 +73,9 @@ The AI service builds a prompt from trip inputs. It can call Groq or an explicit
 - Store trip preferences as JSONB for flexible trip-specific inputs.
 - Keep provider credentials and Supabase service-role access server-side.
 - Treat share URLs as navigable trip-detail URLs that still require authentication; they are not anonymous public links.
+
+## Phase deliverables
+
+- [Problem-Solution Fit - Personalized Travel Itinerary Planner](Problem-Solution%20Fit%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Proposed Solution - Personalized Travel Itinerary Planner](Proposed%20Solution%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
+- [Solution Architecture - Personalized Travel Itinerary Planner](Solution%20Architecture%20-%20Personalized%20Travel%20Itinerary%20Planner.pdf)
